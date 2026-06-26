@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fono Gestión v1</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a;
+    --txt:#e7e9ee; --muted:#9aa3b2; --accent:#4f8cff; --accent2:#3a6fd8;
+    --err:#ff5d5d; --ok:#3ecf8e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg);color:var(--txt);min-height:100vh}
+  .hidden{display:none!important}
+
+  /* ---- LOGIN ---- */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .loginbox{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:28px}
+  .loginbox h1{margin:0 0 4px;font-size:22px}
+  .loginbox p{margin:0 0 22px;color:var(--muted);font-size:13px}
+  label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
+  input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:#11141a;color:var(--txt);font-size:15px}
+  input:focus{outline:none;border-color:var(--accent)}
+  button{cursor:pointer;border:none;font-size:15px;font-weight:600}
+  .btn{width:100%;margin-top:20px;padding:13px;border-radius:10px;
+    background:var(--accent);color:#fff}
+  .btn:hover{background:var(--accent2)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .msg{margin-top:14px;font-size:13px;min-height:18px}
+  .msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+
+  /* ---- APP ---- */
+  #app{display:flex;flex-direction:column;min-height:100vh}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;background:var(--card);border-bottom:1px solid var(--line)}
+  .topbar .brand{font-weight:700}
+  .topbar .brand small{color:var(--muted);font-weight:400;margin-left:6px}
+  .topbar .right{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
+  .logout{background:transparent;color:var(--muted);font-size:13px}
+  .logout:hover{color:var(--txt)}
+  .content{flex:1;padding:40px 18px;display:flex;align-items:center;justify-content:center}
+  .placeholder{text-align:center;color:var(--muted);max-width:420px}
+  .placeholder h2{color:var(--txt);margin:0 0 8px}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<section id="login" class="hidden">
+  <div class="loginbox">
+    <h1>Fono Gestión</h1>
+    <p>Ingresá con tu cuenta</p>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+      <button class="btn" id="loginBtn" type="submit">Entrar</button>
+      <div class="msg" id="loginMsg"></div>
+    </form>
+  </div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<section id="app" class="hidden">
+  <div class="topbar">
+    <div class="brand">Fono Gestión <small>v1</small></div>
+    <div class="right">
+      <span id="userEmail"></span>
+      <button class="logout" id="logoutBtn">Salir</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="placeholder">
+      <h2>¡Hola, Nancy! 👋</h2>
+      <p>El login anda. A partir de acá construimos los módulos:
+         agenda, pacientes, cobros, comisiones y dashboard.</p>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ================== CONFIG ==================
+// Pegá acá los datos de tu proyecto Supabase (Settings → API).
+// La anon key es pública: NO es secreta. Lo que protege los datos es RLS.
+const SUPABASE_URL  = "https://smzlrgzlckrxzcptnbpw.supabase.co";
+const SUPABASE_ANON = "sb_publishable_19gqY1zEapuvCOlWDH2tSg_HHoaZ0np";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ================== ELEMENTOS ==================
+const $ = (id) => document.getElementById(id);
+const loginSec = $("login"), appSec = $("app");
+
+// ================== AUTH ==================
+async function init(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) mostrarApp(session); else mostrarLogin();
+}
+
+function mostrarLogin(){
+  appSec.classList.add("hidden");
+  loginSec.classList.remove("hidden");
+}
+
+function mostrarApp(session){
+  loginSec.classList.add("hidden");
+  appSec.classList.remove("hidden");
+  $("userEmail").textContent = session.user.email;
+  // owner_id de Nancy = session.user.id  (lo usaremos en todas las tablas con RLS)
+}
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("loginBtn"), msg = $("loginMsg");
+  msg.className = "msg"; msg.textContent = "";
+  btn.disabled = true; btn.textContent = "Entrando...";
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("pass").value
+  });
+  btn.disabled = false; btn.textContent = "Entrar";
+  if (error){
+    msg.className = "msg err";
+    msg.textContent = "No pudimos entrar. Revisá email y contraseña.";
+    return;
+  }
+  mostrarApp(data.session);
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  await sb.auth.signOut();
+  mostrarLogin();
+});
+
+init();
+</script>
+</body>
+</html>
