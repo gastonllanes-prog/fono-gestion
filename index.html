@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v17</title>
+<title>Fono Gestión v18</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -172,6 +172,12 @@
   .cal-turno.ausente{background:#f0eef4;color:#8a85a3}
   .cal-turno.proy{background:transparent;border:1px dashed var(--line);color:var(--muted)}
   @media(max-width:760px){ .cal-cell{min-height:74px} .cal-turno{font-size:10px} }
+  /* ---- Configuración ---- */
+  .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;align-items:start}
+  .cfg-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--input-bg);
+    border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin:6px 0;cursor:pointer;font-size:13px}
+  .cfg-row:hover{border-color:var(--accent)}
+  .cfg-row .vig{font-size:11px;color:var(--muted);white-space:nowrap}
   /* ---- Adjuntos de informes ---- */
   .adj-item{display:flex;align-items:center;gap:10px;justify-content:space-between;
     background:var(--input-bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin:7px 0}
@@ -213,11 +219,12 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v17</small></div>
+    <div class="brand">Fono Gestión <small>v18</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="agenda">Agenda</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
+      <button class="nav-item" data-view="config">Configuración</button>
     </nav>
     <div class="right">
       <span id="userEmail"></span>
@@ -252,6 +259,32 @@
       <div class="cal-grid" id="calGrid"></div>
       <div style="font-size:12px;color:var(--muted);margin-top:10px">
         Tocá un día para agendar, o un turno para marcar qué pasó (fue / canceló / ausente) y cargar la nota.
+      </div>
+    </section>
+
+    <!-- ===== Vista Configuración ===== -->
+    <section class="view" id="view-config">
+      <div class="page-head"><h2>Configuración</h2></div>
+      <div class="cfg-grid">
+        <div class="ficha-card">
+          <div class="modal-sec first">Valor de la sesión</div>
+          <label>Valor particular (base de la comisión)</label>
+          <input id="cfg_valor" inputmode="numeric" placeholder="35000">
+          <button class="btn-primary" id="btnSaveValor" style="margin-top:14px">Guardar valor</button>
+          <div class="msg ok" id="cfgValorMsg" style="margin-top:8px"></div>
+        </div>
+        <div class="ficha-card">
+          <div class="modal-sec first">Tramos de comisión</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">A partir de X sesiones por semana, la comisión al centro es Y%.</div>
+          <div id="tramosList"></div>
+          <button class="btn-ghost" id="btnAddTramo" style="margin-top:10px">+ Agregar tramo</button>
+        </div>
+        <div class="ficha-card">
+          <div class="modal-sec first">Política de cancelación</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Con X horas de aviso, el paciente paga A% y se paga B% de comisión.</div>
+          <div id="cancelList"></div>
+          <button class="btn-ghost" id="btnAddCancel" style="margin-top:10px">+ Agregar regla</button>
+        </div>
       </div>
     </section>
 
@@ -397,6 +430,43 @@
       <button class="btn-primary" id="vincConfirm">Vincular</button>
     </div>
     <p style="font-size:12px;color:var(--muted);margin-top:12px">¿No está en la lista? Cargalo primero en la pantalla «Profesionales».</p>
+  </div>
+</div>
+
+<!-- ===== Modal Tramo de comisión ===== -->
+<div class="modal-bg hidden" id="tramoModalBg" style="z-index:70">
+  <div class="modal" style="max-width:400px">
+    <h3 id="tramoTitle">Tramo de comisión</h3>
+    <div class="row2">
+      <div><label>Desde (sesiones/semana)</label><input id="tr_desde" inputmode="numeric"></div>
+      <div><label>Comisión %</label><input id="tr_pct" inputmode="decimal"></div>
+    </div>
+    <label>Vigente desde</label><input id="tr_vig" type="date">
+    <div class="msg err" id="tramoMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnDelTramo">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelTramo">Cancelar</button>
+      <button class="btn-primary" id="btnSaveTramoM">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Regla de cancelación ===== -->
+<div class="modal-bg hidden" id="cancelModalBg" style="z-index:70">
+  <div class="modal" style="max-width:440px">
+    <h3 id="cancelTitle">Regla de cancelación</h3>
+    <label>Horas de aviso (mínimo)</label><input id="ca_horas" inputmode="numeric" placeholder="24">
+    <div class="row2">
+      <div><label>Paga el paciente %</label><input id="ca_pac" inputmode="decimal"></div>
+      <div><label>Comisión %</label><input id="ca_com" inputmode="decimal"></div>
+    </div>
+    <label>Vigente desde</label><input id="ca_vig" type="date">
+    <div class="msg err" id="cancelMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnDelCancel">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelCancel">Cancelar</button>
+      <button class="btn-primary" id="btnSaveCancel">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -798,6 +868,96 @@ function switchView(v){
   if(v==="pacientes") loadPacientes();
   if(v==="profesionales") loadProfCatalogo();
   if(v==="agenda") loadAgenda();
+  if(v==="config") loadConfig();
+}
+
+// ================== CONFIGURACIÓN ==================
+let tramos = [], tramoEditId = null, cancels = [], cancelEditId = null;
+
+async function loadConfig(){
+  const [rc, rt, rl] = await Promise.all([
+    sb.from("config").select("*").maybeSingle(),
+    sb.from("reglas_comision").select("*").order("vigencia_desde",{ascending:false}).order("desde_sesiones",{ascending:true}),
+    sb.from("reglas_cancelacion").select("*").order("vigencia_desde",{ascending:false}).order("horas_aviso",{ascending:false})
+  ]);
+  $("cfg_valor").value = (rc.data && rc.data.valor_sesion!=null) ? rc.data.valor_sesion : "";
+  tramos = rt.data || []; cancels = rl.data || [];
+  $("cfgValorMsg").textContent = "";
+  renderTramos(); renderCancels();
+}
+async function guardarValor(){
+  const v = parseInt(($("cfg_valor").value||"").replace(/[^0-9]/g,""),10);
+  const res = await sb.from("config").upsert({ owner_id: OWNER_ID, valor_sesion: isNaN(v)?null:v });
+  const m = $("cfgValorMsg");
+  if(res.error){ m.className="msg err"; m.textContent="No se pudo guardar."; return; }
+  m.className="msg ok"; m.textContent="Guardado ✓";
+}
+
+function renderTramos(){
+  const c = $("tramosList");
+  if(!tramos.length){ c.innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin tramos cargados.</div>'; return; }
+  c.innerHTML = tramos.map(t=>'<div class="cfg-row" data-id="'+t.id+'"><span>Desde <b>'+t.desde_sesiones+'</b> ses/sem → <b>'+t.porcentaje+'%</b></span><span class="vig">'+fmtFecha(t.vigencia_desde)+'</span></div>').join("");
+  c.querySelectorAll(".cfg-row").forEach(el=>el.addEventListener("click",()=>abrirTramo(el.dataset.id)));
+}
+function abrirTramo(id){
+  tramoEditId = id || null;
+  const t = id ? tramos.find(x=>x.id===id) : null;
+  $("tramoTitle").textContent = t ? "Editar tramo" : "Nuevo tramo";
+  $("tr_desde").value = t ? t.desde_sesiones : "";
+  $("tr_pct").value   = t ? t.porcentaje : "";
+  $("tr_vig").value   = t ? t.vigencia_desde : hoyISO();
+  $("btnDelTramo").classList.toggle("hidden", !t);
+  $("tramoMsg").textContent = "";
+  $("tramoModalBg").classList.remove("hidden");
+  marcarSnap($("tramoModalBg"));
+}
+async function guardarTramo(){
+  const desde = parseInt($("tr_desde").value,10), pct = parseFloat($("tr_pct").value);
+  if(isNaN(desde) || isNaN(pct)){ $("tramoMsg").textContent="Completá sesiones y porcentaje."; return; }
+  const payload = { desde_sesiones:desde, porcentaje:pct, vigencia_desde:$("tr_vig").value||hoyISO() };
+  const res = tramoEditId ? await sb.from("reglas_comision").update(payload).eq("id",tramoEditId) : await sb.from("reglas_comision").insert(payload);
+  if(res.error){ $("tramoMsg").textContent="No se pudo guardar."; return; }
+  $("tramoModalBg").classList.add("hidden"); loadConfig();
+}
+function eliminarTramo(){
+  if(!tramoEditId) return;
+  pedirConfirm("¿Eliminar este tramo?",
+    async ()=>{ await sb.from("reglas_comision").delete().eq("id",tramoEditId); $("tramoModalBg").classList.add("hidden"); loadConfig(); },
+    "Eliminar","Cancelar");
+}
+
+function renderCancels(){
+  const c = $("cancelList");
+  if(!cancels.length){ c.innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin reglas cargadas.</div>'; return; }
+  c.innerHTML = cancels.map(r=>'<div class="cfg-row" data-id="'+r.id+'"><span><b>'+r.horas_aviso+'hs</b> aviso → paciente <b>'+r.pct_paciente+'%</b> / comisión <b>'+r.pct_comision+'%</b></span><span class="vig">'+fmtFecha(r.vigencia_desde)+'</span></div>').join("");
+  c.querySelectorAll(".cfg-row").forEach(el=>el.addEventListener("click",()=>abrirCancel(el.dataset.id)));
+}
+function abrirCancel(id){
+  cancelEditId = id || null;
+  const r = id ? cancels.find(x=>x.id===id) : null;
+  $("cancelTitle").textContent = r ? "Editar regla" : "Nueva regla";
+  $("ca_horas").value = r ? r.horas_aviso : "";
+  $("ca_pac").value   = r ? r.pct_paciente : "";
+  $("ca_com").value   = r ? r.pct_comision : "";
+  $("ca_vig").value   = r ? r.vigencia_desde : hoyISO();
+  $("btnDelCancel").classList.toggle("hidden", !r);
+  $("cancelMsg").textContent = "";
+  $("cancelModalBg").classList.remove("hidden");
+  marcarSnap($("cancelModalBg"));
+}
+async function guardarCancel(){
+  const horas = parseInt($("ca_horas").value,10), pac = parseFloat($("ca_pac").value), com = parseFloat($("ca_com").value);
+  if(isNaN(horas) || isNaN(pac) || isNaN(com)){ $("cancelMsg").textContent="Completá horas y porcentajes."; return; }
+  const payload = { horas_aviso:horas, pct_paciente:pac, pct_comision:com, vigencia_desde:$("ca_vig").value||hoyISO() };
+  const res = cancelEditId ? await sb.from("reglas_cancelacion").update(payload).eq("id",cancelEditId) : await sb.from("reglas_cancelacion").insert(payload);
+  if(res.error){ $("cancelMsg").textContent="No se pudo guardar."; return; }
+  $("cancelModalBg").classList.add("hidden"); loadConfig();
+}
+function eliminarCancel(){
+  if(!cancelEditId) return;
+  pedirConfirm("¿Eliminar esta regla?",
+    async ()=>{ await sb.from("reglas_cancelacion").delete().eq("id",cancelEditId); $("cancelModalBg").classList.add("hidden"); loadConfig(); },
+    "Eliminar","Cancelar");
 }
 
 // ================== AGENDA (calendario mensual) ==================
@@ -1270,6 +1430,17 @@ function initPacientes(){
   $("confirmYes").addEventListener("click",()=>{ const f=_confirmYes; cerrarConfirm(); if(f) f(); });
   $("confirmNo").addEventListener("click",cerrarConfirm);
   $("confirmBg").addEventListener("click",e=>{ if(e.target===$("confirmBg")) cerrarConfirm(); });
+  $("btnSaveValor").addEventListener("click",guardarValor);
+  $("btnAddTramo").addEventListener("click",()=>abrirTramo(null));
+  $("btnSaveTramoM").addEventListener("click",guardarTramo);
+  $("btnCancelTramo").addEventListener("click",()=>cerrarSeguro($("tramoModalBg")));
+  $("btnDelTramo").addEventListener("click",eliminarTramo);
+  $("tramoModalBg").addEventListener("click",e=>{ if(e.target===$("tramoModalBg")) cerrarSeguro($("tramoModalBg")); });
+  $("btnAddCancel").addEventListener("click",()=>abrirCancel(null));
+  $("btnSaveCancel").addEventListener("click",guardarCancel);
+  $("btnCancelCancel").addEventListener("click",()=>cerrarSeguro($("cancelModalBg")));
+  $("btnDelCancel").addEventListener("click",eliminarCancel);
+  $("cancelModalBg").addEventListener("click",e=>{ if(e.target===$("cancelModalBg")) cerrarSeguro($("cancelModalBg")); });
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
