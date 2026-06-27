@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v23</title>
+<title>Fono Gestión v24</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +111,7 @@
   .stat .v{font-family:var(--ff-display);font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
   @media(max-width:880px){.stats{grid-template-columns:repeat(2,1fr)}}
   /* ---- Grilla de tarjetas (estilo rediseño) ---- */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;
     cursor:pointer;text-align:left;width:100%;transition:transform .15s,box-shadow .15s,border-color .15s}
   .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--line-strong)}
@@ -152,7 +152,7 @@
   .tab:hover{color:var(--txt)}
   .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
   .panel{display:none} .panel.show{display:block}
-  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
   .fieldset{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
   .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:14px}
   .fieldset label{display:block;font-size:12px;color:var(--muted2);font-weight:600;margin:14px 0 4px}
@@ -160,9 +160,9 @@
     border-radius:10px;background:var(--card);color:var(--txt);font-size:14px;font-family:inherit}
   .fieldset textarea{min-height:64px;resize:vertical}
   .fieldset input:focus,.fieldset select:focus,.fieldset textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  #pacForm.lectura input,#pacForm.lectura select,#pacForm.lectura textarea{border-color:transparent;background:transparent;
+  .lectura input,.lectura select,.lectura textarea{border-color:transparent;background:transparent;
     padding-left:0;font-weight:500;appearance:none;-webkit-appearance:none;pointer-events:none}
-  #pacForm.lectura textarea{resize:none}
+  .lectura textarea{resize:none}
   .prof{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
   .prof .ph{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .prof .ph .role{font-family:var(--ff-display);font-weight:700;color:var(--accent2);font-size:14px}
@@ -311,7 +311,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v23</small></div>
+    <div class="brand">Fono Gestión <small>v24</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -521,32 +521,45 @@
         <p class="note">La comisión se calcula sobre las sesiones reales, no sobre las facturadas. Estos números se conectan en S3 (comisión).</p>
       </div>
     </section>
+
+    <!-- ===== Vista Detalle de profesional ===== -->
+    <section class="view" id="view-prof-detalle">
+      <button class="back" id="profBack"><i class="ti ti-arrow-left"></i> Volver a profesionales</button>
+      <div class="dhead">
+        <div class="pac-foto-av" id="dhp-av"></div>
+        <div class="who">
+          <h3 id="dhp-nombre">Nuevo profesional</h3>
+          <div class="dmeta" id="dhp-meta"></div>
+        </div>
+        <div class="dactions">
+          <button class="btn-ghost" id="btnEditarProf"><i class="ti ti-edit"></i> Editar</button>
+          <button class="btn-ghost hidden" id="btnCancelProf">Cancelar</button>
+          <button class="btn-primary hidden" id="btnSaveProf">Guardar</button>
+          <button class="btn-danger hidden" id="btnDelProf">Eliminar</button>
+        </div>
+      </div>
+      <div id="profForm" class="lectura" style="max-width:580px">
+        <div class="fieldset">
+          <div class="eyebrow">Datos del profesional</div>
+          <label>Especialidad</label>
+          <input id="pf_esp" list="esplist" placeholder="Ej: Psicopedagoga">
+          <datalist id="esplist"></datalist>
+          <div class="row2">
+            <div><label>Nombre</label><input id="pf_nombre"></div>
+            <div><label>Apellido</label><input id="pf_apellido"></div>
+          </div>
+          <label>Teléfono</label><input id="pf_tel" inputmode="tel">
+        </div>
+        <div class="msg err" id="profModalMsg" style="margin-top:12px"></div>
+      </div>
+    </section>
   </div>
   </main>
 </section>
 
 <!-- (modal de paciente migrado a la vista #view-pac-detalle, dentro del content) -->
 
-<!-- ===== Sub-modal Profesional ===== -->
-<div class="modal-bg hidden" id="profModalBg">
-  <div class="modal" style="max-width:420px">
-    <h3 id="profModalTitle">Profesional</h3>
-    <label>Especialidad</label>
-    <input id="pf_esp" list="esplist" placeholder="Ej: Psicopedagoga">
-    <datalist id="esplist"></datalist>
-    <div class="row2">
-      <div><label>Nombre</label><input id="pf_nombre"></div>
-      <div><label>Apellido</label><input id="pf_apellido"></div>
-    </div>
-    <label>Teléfono</label><input id="pf_tel" inputmode="tel">
-    <div class="msg err" id="profModalMsg"></div>
-    <div class="modal-actions">
-      <button class="btn-danger hidden" id="btnDelProf">Eliminar</button>
-      <button class="btn-ghost" id="btnCancelProf">Cancelar</button>
-      <button class="btn-primary" id="btnSaveProf">Guardar</button>
-    </div>
-  </div>
-</div>
+<!-- (modal de profesional migrado a la vista #view-prof-detalle) -->
 
 <!-- ===== Modal Vincular profesional ===== -->
 <div class="modal-bg hidden" id="vincModalBg" style="z-index:70">
@@ -1076,23 +1089,41 @@ function renderProfCatalogo(){
     el.addEventListener("click",()=>abrirModalProf(el.dataset.id)));
 }
 
-function abrirModalProf(id){
-  profCatEditId = id || null;
-  const p = id ? profCatalogo.find(x=>x.id===id) : null;
-  $("profModalTitle").textContent = p ? "Editar profesional" : "Nuevo profesional";
+function headerProf(p){
+  $("dhp-nombre").textContent = p ? ((((p.nombre||"")+" "+(p.apellido||"")).trim())||"(sin nombre)") : "Nuevo profesional";
+  const av = $("dhp-av");
+  const ini = p ? (((((p.nombre||"")[0]||"")+((p.apellido||"")[0]||"")).toUpperCase())||"?") : "?";
+  av.textContent = ini; av.style.background = avatarColor(p ? (((p.nombre||"")+(p.apellido||""))||"x") : "x");
+  $("dhp-meta").innerHTML = (p&&p.especialidad) ? '<span class="chip chip-os">'+esc(p.especialidad)+'</span>' : '';
+}
+function setEditableProf(on){
+  $("profForm").classList.toggle("lectura", !on);
+  $("btnEditarProf").classList.toggle("hidden", on || !profCatEditId);
+  $("btnSaveProf").classList.toggle("hidden", !on);
+  $("btnCancelProf").classList.toggle("hidden", !on || !profCatEditId);
+}
+function rellenarProf(p){
   $("pf_esp").value      = p ? (p.especialidad||"") : "";
   $("pf_nombre").value   = p ? (p.nombre||"") : "";
   $("pf_apellido").value = p ? (p.apellido||"") : "";
   $("pf_tel").value      = p ? (p.telefono||"") : "";
-  $("btnDelProf").classList.toggle("hidden", !p);
-  $("profModalMsg").textContent = "";
-  $("profModalBg").classList.remove("hidden");
-  marcarSnap($("profModalBg"));
 }
-function cerrarModalProf(){ $("profModalBg").classList.add("hidden"); }
+function abrirModalProf(id){
+  profCatEditId = id || null;
+  const p = id ? profCatalogo.find(x=>x.id===id) : null;
+  rellenarProf(p);
+  headerProf(p);
+  $("btnDelProf").classList.toggle("hidden", !p);
+  $("profModalMsg").className = "msg err"; $("profModalMsg").textContent = "";
+  setEditableProf(!p);
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+  $("view-prof-detalle").classList.add("active");
+  window.scrollTo(0,0);
+}
+function cerrarModalProf(){ switchView("profesionales"); }
 
 async function guardarProf(){
-  const msg = $("profModalMsg"); msg.textContent = "";
+  const msg = $("profModalMsg"); msg.className = "msg err"; msg.textContent = "";
   const esp = $("pf_esp").value.trim(), nombre = $("pf_nombre").value.trim();
   if(!esp && !nombre){ msg.textContent = "Poné al menos especialidad o nombre."; return; }
   const payload = {
@@ -1104,18 +1135,26 @@ async function guardarProf(){
   const btn = $("btnSaveProf"); btn.disabled = true; btn.textContent = "Guardando...";
   const res = profCatEditId
     ? await sb.from("profesionales").update(payload).eq("id",profCatEditId)
-    : await sb.from("profesionales").insert(payload);
+    : await sb.from("profesionales").insert(payload).select().single();
   btn.disabled = false; btn.textContent = "Guardar";
   if(res.error){ msg.textContent = "No se pudo guardar."; return; }
-  cerrarModalProf(); loadProfCatalogo();
+  if(!profCatEditId && res.data) profCatEditId = res.data.id;
+  await loadProfCatalogo();
+  const p = profCatalogo.find(x=>x.id===profCatEditId);
+  headerProf(p);
+  $("btnDelProf").classList.remove("hidden");
+  setEditableProf(false);
+  msg.className = "msg ok"; msg.textContent = "Guardado ✓";
 }
 
 async function eliminarProf(){
   if(!profCatEditId) return;
-  if(!confirm("¿Eliminar este profesional del catálogo?\nSe va a desvincular de los pacientes que lo tengan.")) return;
-  const res = await sb.from("profesionales").delete().eq("id",profCatEditId);
-  if(res.error){ $("profModalMsg").textContent = "No se pudo eliminar."; return; }
-  cerrarModalProf(); loadProfCatalogo();
+  pedirConfirm("¿Eliminar este profesional del catálogo? Se va a desvincular de los pacientes que lo tengan.",
+    async ()=>{
+      const res = await sb.from("profesionales").delete().eq("id",profCatEditId);
+      if(res.error){ $("profModalMsg").className="msg err"; $("profModalMsg").textContent="No se pudo eliminar."; return; }
+      switchView("profesionales");
+    }, "Eliminar", "Cancelar");
 }
 
 // ================== NAVEGACIÓN ENTRE VISTAS ==================
@@ -1685,10 +1724,11 @@ function initPacientes(){
   document.querySelectorAll("#pacTabs .tab").forEach(b=>b.addEventListener("click",()=>setTabPac(b.dataset.pt)));
   $("btnNuevoProf").addEventListener("click",()=>abrirModalProf(null));
   $("profSearch").addEventListener("input",renderProfCatalogo);
+  $("profBack").addEventListener("click",cerrarModalProf);
+  $("btnEditarProf").addEventListener("click",()=>setEditableProf(true));
   $("btnSaveProf").addEventListener("click",guardarProf);
-  $("btnCancelProf").addEventListener("click",()=>cerrarSeguro($("profModalBg")));
+  $("btnCancelProf").addEventListener("click",()=>{ const p=profCatalogo.find(x=>x.id===profCatEditId); rellenarProf(p); setEditableProf(false); $("profModalMsg").textContent=""; });
   $("btnDelProf").addEventListener("click",eliminarProf);
-  $("profModalBg").addEventListener("click",e=>{ if(e.target===$("profModalBg")) cerrarSeguro($("profModalBg")); });
   $("confirmYes").addEventListener("click",()=>{ const f=_confirmYes; cerrarConfirm(); if(f) f(); });
   $("confirmNo").addEventListener("click",cerrarConfirm);
   $("confirmBg").addEventListener("click",e=>{ if(e.target===$("confirmBg")) cerrarConfirm(); });
