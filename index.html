@@ -3,12 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v1</title>
+<title>Fono Gestión v3</title>
 <style>
   :root{
-    --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a;
-    --txt:#e7e9ee; --muted:#9aa3b2; --accent:#4f8cff; --accent2:#3a6fd8;
-    --err:#ff5d5d; --ok:#3ecf8e;
+    /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
+       con menta y durazno reservados para acentos de módulos. */
+    --bg:#f6f3fb; --card:#ffffff; --line:#ece7f4;
+    --txt:#3f3a52; --muted:#8a85a3;
+    --accent:#8b6fd4; --accent2:#7458c2; --accent-soft:#efeafb;
+    --input-bg:#faf8fd;
+    --menta:#7fc9b0; --durazno:#f3b79b; --celeste:#8cc2e6;
+    --err:#d96a6a; --ok:#4caf8e;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -16,15 +21,16 @@
   .hidden{display:none!important}
 
   /* ---- LOGIN ---- */
-  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:linear-gradient(135deg,#efe9fb 0%,#f7eef0 50%,#eaf4f1 100%)}
   .loginbox{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
-    border-radius:16px;padding:28px}
-  .loginbox h1{margin:0 0 4px;font-size:22px}
+    border-radius:18px;padding:30px;box-shadow:0 12px 34px rgba(123,98,196,.14)}
+  .loginbox h1{margin:0 0 4px;font-size:23px;color:var(--accent2)}
   .loginbox p{margin:0 0 22px;color:var(--muted);font-size:13px}
   label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
   input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
-    background:#11141a;color:var(--txt);font-size:15px}
-  input:focus{outline:none;border-color:var(--accent)}
+    background:var(--input-bg);color:var(--txt);font-size:15px}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   button{cursor:pointer;border:none;font-size:15px;font-weight:600}
   .btn{width:100%;margin-top:20px;padding:13px;border-radius:10px;
     background:var(--accent);color:#fff}
@@ -36,15 +42,67 @@
   /* ---- APP ---- */
   #app{display:flex;flex-direction:column;min-height:100vh}
   .topbar{display:flex;align-items:center;justify-content:space-between;
-    padding:14px 18px;background:var(--card);border-bottom:1px solid var(--line)}
-  .topbar .brand{font-weight:700}
+    padding:14px 18px;background:var(--card);
+    border-bottom:3px solid transparent;
+    border-image:linear-gradient(90deg,var(--accent),var(--menta),var(--durazno)) 1}
+  .topbar .brand{font-weight:700;color:var(--accent2)}
   .topbar .brand small{color:var(--muted);font-weight:400;margin-left:6px}
   .topbar .right{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
   .logout{background:transparent;color:var(--muted);font-size:13px}
   .logout:hover{color:var(--txt)}
-  .content{flex:1;padding:40px 18px;display:flex;align-items:center;justify-content:center}
-  .placeholder{text-align:center;color:var(--muted);max-width:420px}
-  .placeholder h2{color:var(--txt);margin:0 0 8px}
+  .nav{display:flex;gap:4px;flex-wrap:wrap}
+  .nav-item{background:transparent;color:var(--muted);font-size:14px;padding:7px 13px;border-radius:9px}
+  .nav-item:hover{background:var(--accent-soft);color:var(--accent2)}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent2);font-weight:700}
+  .content{flex:1;padding:24px 18px;max-width:1100px;width:100%;margin:0 auto}
+  .view{display:none} .view.active{display:block}
+
+  /* ---- Encabezado de página ---- */
+  .page-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .page-head h2{margin:0;font-size:21px}
+  .search{flex:1;min-width:160px;max-width:320px}
+  .search input{padding:10px 12px}
+  .btn-primary{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px}
+  .btn-primary:hover{background:var(--accent2)}
+  .btn-primary:disabled{opacity:.6}
+  .btn-ghost{background:var(--card);color:var(--txt);border:1px solid var(--line);padding:9px 14px;border-radius:10px;font-size:14px}
+  .btn-ghost:hover{border-color:var(--accent)}
+  .btn-danger{background:transparent;color:var(--err);border:1px solid #f0d4d4;padding:9px 14px;border-radius:10px;font-size:14px}
+
+  /* ---- Tarjetas de pacientes ---- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+  .card-pac{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:14px;cursor:pointer;transition:.15s;box-shadow:0 2px 8px rgba(123,98,196,.05)}
+  .card-pac:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(123,98,196,.12);transform:translateY(-1px)}
+  .card-pac.inactivo{opacity:.55}
+  .avatar{width:54px;height:54px;border-radius:50%;flex:0 0 54px;display:flex;align-items:center;
+    justify-content:center;font-weight:700;font-size:20px;color:#fff}
+  .card-pac .info{min-width:0}
+  .card-pac .nom{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-pac .meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .chips{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+  .chip{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .chip-particular{background:#fdeee6;color:#c47a4f}
+  .chip-os{background:#e7f2fa;color:#4a86b3}
+  .chip-inactivo{background:#f0eef4;color:#8a85a3}
+  .empty{text-align:center;color:var(--muted);padding:50px 20px}
+
+  /* ---- Modal ---- */
+  .modal-bg{position:fixed;inset:0;background:rgba(63,58,82,.45);display:flex;align-items:flex-start;
+    justify-content:center;padding:30px 16px;overflow-y:auto;z-index:50}
+  .modal{background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:500px;
+    box-shadow:0 20px 50px rgba(63,58,82,.25)}
+  .modal h3{margin:0 0 14px;color:var(--accent2)}
+  .modal input,.modal select,.modal textarea{width:100%;padding:11px;border-radius:10px;
+    border:1px solid var(--line);background:var(--input-bg);color:var(--txt);font-size:14px}
+  .modal textarea{font-family:inherit;resize:vertical;min-height:52px}
+  .modal input:focus,.modal select:focus,.modal textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .modal-sec{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;
+    margin:20px 0 4px;border-top:1px solid var(--line);padding-top:15px}
+  .modal-sec.first{border-top:none;padding-top:0;margin-top:4px}
+  .row2{display:flex;gap:10px;flex-wrap:wrap} .row2>div{flex:1;min-width:120px}
+  .modal-actions{display:flex;gap:10px;margin-top:22px}
+  .modal-actions .btn-primary{flex:1}
 </style>
 </head>
 <body>
@@ -68,20 +126,93 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v1</small></div>
+    <div class="brand">Fono Gestión <small>v3</small></div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="pacientes">Pacientes</button>
+    </nav>
     <div class="right">
       <span id="userEmail"></span>
       <button class="logout" id="logoutBtn">Salir</button>
     </div>
   </div>
+
   <div class="content">
-    <div class="placeholder">
-      <h2>¡Hola, Nancy! 👋</h2>
-      <p>El login anda. A partir de acá construimos los módulos:
-         agenda, pacientes, cobros, comisiones y dashboard.</p>
-    </div>
+    <!-- ===== Vista Pacientes ===== -->
+    <section class="view active" id="view-pacientes">
+      <div class="page-head">
+        <h2>Pacientes</h2>
+        <div class="search"><input id="pacSearch" placeholder="Buscar por nombre o DNI..."></div>
+        <button class="btn-primary" id="btnNuevoPac">+ Nuevo paciente</button>
+      </div>
+      <div class="cards" id="pacCards"></div>
+      <div class="empty hidden" id="pacEmpty"></div>
+    </section>
   </div>
 </section>
+
+<!-- ===== Modal Paciente ===== -->
+<div class="modal-bg hidden" id="pacModalBg">
+  <div class="modal">
+    <h3 id="pacModalTitle">Nuevo paciente</h3>
+    <div class="modal-sec first">Datos personales</div>
+    <div class="row2">
+      <div><label>Nombre</label><input id="f_nombre"></div>
+      <div><label>Apellido</label><input id="f_apellido"></div>
+    </div>
+    <div class="row2">
+      <div><label>DNI</label><input id="f_dni" inputmode="numeric"></div>
+      <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
+    </div>
+    <label>Dirección</label><input id="f_direccion">
+
+    <div class="modal-sec">Cobertura</div>
+    <select id="f_cobertura">
+      <option value="particular">Particular</option>
+      <option value="obra_social">Obra social</option>
+    </select>
+    <div id="f_os_wrap" class="hidden">
+      <label>Obra social</label>
+      <input id="f_os" list="oslist" placeholder="Escribí o elegí...">
+      <datalist id="oslist"></datalist>
+    </div>
+
+    <div class="modal-sec">Familia y contacto</div>
+    <div class="row2">
+      <div><label>Madre</label><input id="f_madre"></div>
+      <div><label>Padre</label><input id="f_padre"></div>
+    </div>
+    <label>Hermanos</label><input id="f_hermanos" placeholder="Ej: 2 (Juan 8, Ana 5)">
+    <label>Teléfono de contacto</label><input id="f_tel" inputmode="tel">
+
+    <div class="modal-sec">Salud</div>
+    <label>Pediatra</label><input id="f_pediatra">
+    <label>¿Tiene CUD? (Certificado Único de Discapacidad)</label>
+    <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
+    <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
+    <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
+
+    <div class="modal-sec">Escolaridad</div>
+    <div class="row2">
+      <div><label>Institución educativa</label><input id="f_institucion"></div>
+      <div><label>Grado</label><input id="f_grado"></div>
+    </div>
+    <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
+
+    <div id="f_estado_wrap" class="hidden">
+      <div class="modal-sec">Estado</div>
+      <select id="f_estado">
+        <option value="activo">Activo</option>
+        <option value="inactivo">Inactivo</option>
+      </select>
+    </div>
+    <div class="msg err" id="pacModalMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnEliminarPac">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelarPac">Cancelar</button>
+      <button class="btn-primary" id="btnGuardarPac">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -113,6 +244,173 @@ function mostrarApp(session){
   appSec.classList.remove("hidden");
   $("userEmail").textContent = session.user.email;
   // owner_id de Nancy = session.user.id  (lo usaremos en todas las tablas con RLS)
+  if (!window._pacInit){ initPacientes(); window._pacInit = true; }
+  loadPacientes();
+}
+
+// ================== PACIENTES ==================
+let pacientes = [], obras = [], pacEditId = null;
+const AVATAR_COLORS = ["#8b6fd4","#7fc9b0","#f3b79b","#8cc2e6","#d99bc4","#e0b85c"];
+
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,
+  c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+function avatarColor(s){ let h=0; for(let i=0;i<s.length;i++) h=s.charCodeAt(i)+((h<<5)-h);
+  return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
+function inicial(p){ const n=(p.nombre||"").trim(), a=(p.apellido||"").trim();
+  return (((n[0]||"")+(a[0]||"")).toUpperCase()) || "?"; }
+function edad(f){ if(!f) return null; const d=new Date(f), h=new Date();
+  let e=h.getFullYear()-d.getFullYear(); const m=h.getMonth()-d.getMonth();
+  if(m<0||(m===0&&h.getDate()<d.getDate())) e--; return e; }
+function nombreOS(id){ const o=obras.find(x=>x.id===id); return o?o.nombre:""; }
+
+async function loadPacientes(){
+  const [rp, ro] = await Promise.all([
+    sb.from("pacientes").select("*").order("apellido",{ascending:true}),
+    sb.from("obras_sociales").select("*").order("nombre",{ascending:true})
+  ]);
+  pacientes = rp.data || [];
+  obras = ro.data || [];
+  $("oslist").innerHTML = obras.map(o=>'<option value="'+esc(o.nombre)+'">').join("");
+  renderPacientes();
+}
+
+function renderPacientes(){
+  const q = ($("pacSearch").value||"").toLowerCase().trim();
+  const list = pacientes.filter(p=>{
+    if(!q) return true;
+    return ((p.nombre||"")+" "+(p.apellido||"")+" "+(p.dni||"")).toLowerCase().includes(q);
+  });
+  const cont = $("pacCards"), empty = $("pacEmpty");
+  if(!list.length){
+    cont.innerHTML = "";
+    empty.classList.remove("hidden");
+    empty.textContent = pacientes.length
+      ? "No hay pacientes que coincidan con la búsqueda."
+      : "Todavía no cargaste pacientes. Tocá “+ Nuevo paciente”.";
+    return;
+  }
+  empty.classList.add("hidden");
+  let html = "";
+  list.forEach(p=>{
+    const nom = esc(((p.nombre||"")+" "+(p.apellido||"")).trim()) || "(sin nombre)";
+    const e = edad(p.fecha_nacimiento);
+    const meta = [];
+    if(p.dni) meta.push("DNI "+esc(p.dni));
+    if(e!==null) meta.push(e+" años");
+    let chips = "";
+    if(p.cobertura_tipo==="obra_social")
+      chips += '<span class="chip chip-os">'+(esc(nombreOS(p.obra_social_id))||"Obra social")+'</span>';
+    else
+      chips += '<span class="chip chip-particular">Particular</span>';
+    if(p.estado==="inactivo") chips += '<span class="chip chip-inactivo">Inactivo</span>';
+    html += '<div class="card-pac'+(p.estado==="inactivo"?" inactivo":"")+'" data-id="'+p.id+'">'
+      + '<div class="avatar" style="background:'+avatarColor(nom)+'">'+esc(inicial(p))+'</div>'
+      + '<div class="info"><div class="nom">'+nom+'</div>'
+      + (meta.length?'<div class="meta">'+meta.join(" · ")+'</div>':'')
+      + '<div class="chips">'+chips+'</div></div></div>';
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll(".card-pac").forEach(el=>
+    el.addEventListener("click",()=>abrirModalPac(el.dataset.id)));
+}
+
+function toggleOS(){ $("f_os_wrap").classList.toggle("hidden", $("f_cobertura").value!=="obra_social"); }
+
+function abrirModalPac(id){
+  pacEditId = id || null;
+  const p = id ? pacientes.find(x=>x.id===id) : null;
+  $("pacModalTitle").textContent = p ? "Editar paciente" : "Nuevo paciente";
+  $("f_nombre").value     = p ? (p.nombre||"") : "";
+  $("f_apellido").value   = p ? (p.apellido||"") : "";
+  $("f_dni").value        = p ? (p.dni||"") : "";
+  $("f_nac").value        = p ? (p.fecha_nacimiento||"") : "";
+  $("f_direccion").value  = p ? (p.direccion||"") : "";
+  $("f_cobertura").value  = p ? (p.cobertura_tipo||"particular") : "particular";
+  $("f_os").value         = (p && p.cobertura_tipo==="obra_social") ? nombreOS(p.obra_social_id) : "";
+  $("f_madre").value      = p ? (p.madre_nombre||"") : "";
+  $("f_padre").value      = p ? (p.padre_nombre||"") : "";
+  $("f_hermanos").value   = p ? (p.hermanos||"") : "";
+  $("f_tel").value        = p ? (p.tutor_contacto||"") : "";
+  $("f_pediatra").value   = p ? (p.pediatra||"") : "";
+  $("f_cud").value        = (p && p.tiene_cud) ? "si" : "no";
+  $("f_dxmed").value      = p ? (p.diagnostico_medico||"") : "";
+  $("f_dxfono").value     = p ? (p.diagnostico_fono||"") : "";
+  $("f_institucion").value= p ? (p.institucion_educativa||"") : "";
+  $("f_grado").value      = p ? (p.grado||"") : "";
+  $("f_integradora").value= p ? (p.integradora||"") : "";
+  $("f_estado").value     = p ? (p.estado||"activo") : "activo";
+  toggleOS();
+  $("f_estado_wrap").classList.toggle("hidden", !p);   // estado solo al editar
+  $("btnEliminarPac").classList.toggle("hidden", !p);
+  $("pacModalMsg").textContent = "";
+  $("pacModalBg").classList.remove("hidden");
+}
+function cerrarModalPac(){ $("pacModalBg").classList.add("hidden"); }
+
+async function guardarPac(){
+  const msg = $("pacModalMsg"); msg.textContent = "";
+  const nombre = $("f_nombre").value.trim();
+  if(!nombre){ msg.textContent = "El nombre es obligatorio."; return; }
+  const cob = $("f_cobertura").value;
+  let obra_social_id = null;
+  if(cob==="obra_social"){
+    const osNom = $("f_os").value.trim();
+    if(osNom){
+      let o = obras.find(x=>(x.nombre||"").toLowerCase()===osNom.toLowerCase());
+      if(!o){
+        const ins = await sb.from("obras_sociales").insert({nombre:osNom}).select().single();
+        if(ins.error){ msg.textContent = "No se pudo crear la obra social."; return; }
+        o = ins.data; obras.push(o);
+      }
+      obra_social_id = o.id;
+    }
+  }
+  const payload = {
+    nombre,
+    apellido:      $("f_apellido").value.trim() || null,
+    dni:           $("f_dni").value.trim() || null,
+    fecha_nacimiento: $("f_nac").value || null,
+    direccion:     $("f_direccion").value.trim() || null,
+    cobertura_tipo: cob,
+    obra_social_id,
+    madre_nombre:  $("f_madre").value.trim() || null,
+    padre_nombre:  $("f_padre").value.trim() || null,
+    hermanos:      $("f_hermanos").value.trim() || null,
+    tutor_contacto:$("f_tel").value.trim() || null,
+    pediatra:      $("f_pediatra").value.trim() || null,
+    tiene_cud:     $("f_cud").value === "si",
+    diagnostico_medico: $("f_dxmed").value.trim() || null,
+    diagnostico_fono:   $("f_dxfono").value.trim() || null,
+    institucion_educativa: $("f_institucion").value.trim() || null,
+    grado:         $("f_grado").value.trim() || null,
+    integradora:   $("f_integradora").value.trim() || null,
+    estado: pacEditId ? $("f_estado").value : "activo"
+  };
+  const btn = $("btnGuardarPac"); btn.disabled = true; btn.textContent = "Guardando...";
+  const res = pacEditId
+    ? await sb.from("pacientes").update(payload).eq("id",pacEditId)
+    : await sb.from("pacientes").insert(payload);
+  btn.disabled = false; btn.textContent = "Guardar";
+  if(res.error){ msg.textContent = "No se pudo guardar."; return; }
+  cerrarModalPac(); loadPacientes();
+}
+
+async function eliminarPac(){
+  if(!pacEditId) return;
+  if(!confirm("¿Eliminar este paciente? No se puede deshacer.\nSi solo dejó de venir, mejor ponelo en estado Inactivo.")) return;
+  const res = await sb.from("pacientes").delete().eq("id",pacEditId);
+  if(res.error){ $("pacModalMsg").textContent = "No se pudo eliminar."; return; }
+  cerrarModalPac(); loadPacientes();
+}
+
+function initPacientes(){
+  $("btnNuevoPac").addEventListener("click",()=>abrirModalPac(null));
+  $("btnCancelarPac").addEventListener("click",cerrarModalPac);
+  $("btnGuardarPac").addEventListener("click",guardarPac);
+  $("btnEliminarPac").addEventListener("click",eliminarPac);
+  $("f_cobertura").addEventListener("change",toggleOS);
+  $("pacSearch").addEventListener("input",renderPacientes);
+  $("pacModalBg").addEventListener("click",e=>{ if(e.target===$("pacModalBg")) cerrarModalPac(); });
 }
 
 $("loginForm").addEventListener("submit", async (e) => {
