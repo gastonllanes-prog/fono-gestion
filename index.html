@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v20</title>
+<title>Fono Gestión v21</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <style>
   :root{
@@ -122,6 +122,18 @@
   .fila-chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
   .fila .chev{color:var(--muted);font-size:22px;flex:0 0 auto}
   .chip{font-size:12px;padding:3px 11px;border-radius:20px;font-weight:600}
+  /* ---- Galería (opción C: foto grande arriba) ---- */
+  .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 18px;
+    text-align:center;cursor:pointer;transition:.14s}
+  .gcard:hover{border-color:var(--accent);box-shadow:0 8px 22px rgba(123,98,196,.13);transform:translateY(-2px)}
+  .gcard.inactivo{opacity:.55}
+  .gcard-av{width:104px;height:104px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;
+    justify-content:center;font-weight:700;font-size:38px;color:#fff;overflow:hidden}
+  .gcard-av img{width:100%;height:100%;object-fit:cover}
+  .gcard-nom{font-size:18px;font-weight:700;color:var(--txt);line-height:1.25}
+  .gcard-meta{font-size:14px;color:var(--muted);margin:6px 0 14px;min-height:18px}
+  .gcard-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
   /* ---- Foto de perfil en la ficha ---- */
   .pac-foto-head{display:flex;align-items:center;gap:18px;margin-bottom:8px;padding-bottom:18px;border-bottom:1px solid var(--line)}
   .pac-foto-av{width:88px;height:88px;border-radius:50%;flex:0 0 88px;display:flex;align-items:center;
@@ -260,7 +272,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v20</small></div>
+    <div class="brand">Fono Gestión <small>v21</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -282,7 +294,7 @@
         <div class="search"><input id="pacSearch" placeholder="Buscar por nombre o DNI..."></div>
         <button class="btn-primary" id="btnNuevoPac">+ Nuevo paciente</button>
       </div>
-      <div class="lista" id="pacCards"></div>
+      <div class="galeria" id="pacCards"></div>
       <div class="empty hidden" id="pacEmpty"></div>
     </section>
 
@@ -337,7 +349,7 @@
         <div class="search"><input id="profSearch" placeholder="Buscar por nombre o especialidad..."></div>
         <button class="btn-primary" id="btnNuevoProf">+ Nuevo profesional</button>
       </div>
-      <div class="lista" id="profCards"></div>
+      <div class="galeria" id="profCards"></div>
       <div class="empty hidden" id="profEmpty"></div>
     </section>
   </div>
@@ -727,15 +739,14 @@ function renderPacientes(){
     const foto = fotoUrls[p.id];
     const av = foto ? '<img src="'+foto+'" alt="">' : esc(inicial(p));
     const avStyle = foto ? '' : 'background:'+avatarColor(nom);
-    html += '<div class="fila'+(p.estado==="inactivo"?" inactivo":"")+'" data-id="'+p.id+'">'
-      + '<div class="fila-av" style="'+avStyle+'">'+av+'</div>'
-      + '<div class="fila-info"><div class="fila-nom">'+nom+'</div>'
-      + (meta.length?'<div class="fila-meta">'+meta.join(" · ")+'</div>':'')+'</div>'
-      + '<div class="fila-chips">'+chips+'</div>'
-      + '<i class="ti ti-chevron-right chev"></i></div>';
+    html += '<div class="gcard'+(p.estado==="inactivo"?" inactivo":"")+'" data-id="'+p.id+'">'
+      + '<div class="gcard-av" style="'+avStyle+'">'+av+'</div>'
+      + '<div class="gcard-nom">'+nom+'</div>'
+      + '<div class="gcard-meta">'+(meta.join(" · "))+'</div>'
+      + '<div class="gcard-chips">'+chips+'</div></div>';
   });
   cont.innerHTML = html;
-  cont.querySelectorAll(".fila").forEach(el=>
+  cont.querySelectorAll(".gcard").forEach(el=>
     el.addEventListener("click",()=>abrirModalPac(el.dataset.id)));
 }
 
@@ -921,15 +932,14 @@ function renderProfCatalogo(){
   list.forEach(p=>{
     const nom = esc(((p.nombre||"")+" "+(p.apellido||"")).trim()) || "(sin nombre)";
     const ini = (((p.nombre||"")[0]||"")+((p.apellido||"")[0]||"")).toUpperCase() || "?";
-    html += '<div class="fila" data-id="'+p.id+'">'
-      + '<div class="fila-av" style="background:'+avatarColor(nom)+'">'+esc(ini)+'</div>'
-      + '<div class="fila-info"><div class="fila-nom">'+nom+'</div>'
-      + (p.telefono?'<div class="fila-meta">'+esc(p.telefono)+'</div>':'')+'</div>'
-      + '<div class="fila-chips"><span class="chip chip-os">'+(esc(p.especialidad)||"Profesional")+'</span></div>'
-      + '<i class="ti ti-chevron-right chev"></i></div>';
+    html += '<div class="gcard" data-id="'+p.id+'">'
+      + '<div class="gcard-av" style="background:'+avatarColor(nom)+'">'+esc(ini)+'</div>'
+      + '<div class="gcard-nom">'+nom+'</div>'
+      + '<div class="gcard-meta">'+(p.telefono?esc(p.telefono):"")+'</div>'
+      + '<div class="gcard-chips"><span class="chip chip-os">'+(esc(p.especialidad)||"Profesional")+'</span></div></div>';
   });
   cont.innerHTML = html;
-  cont.querySelectorAll(".fila").forEach(el=>
+  cont.querySelectorAll(".gcard").forEach(el=>
     el.addEventListener("click",()=>abrirModalProf(el.dataset.id)));
 }
 
