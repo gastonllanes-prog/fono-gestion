@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v13</title>
+<title>Fono Gestión v14</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -143,6 +143,12 @@
   .btn-mini{background:var(--accent-soft);color:var(--accent2);font-size:12px;padding:5px 11px;
     border-radius:8px;font-weight:600}
   .btn-mini:hover{background:#e2d9f7}
+  /* ---- Turnos fijos ---- */
+  .turno-item{display:flex;align-items:center;gap:12px;background:var(--input-bg);border:1px solid var(--line);
+    border-radius:9px;padding:9px 12px;margin:6px 0;cursor:pointer}
+  .turno-item:hover{border-color:var(--accent)}
+  .tu-dia{font-weight:700;color:var(--accent2);font-size:13px;min-width:84px}
+  .tu-hora{font-size:13px}
   /* ---- Adjuntos de informes ---- */
   .adj-item{display:flex;align-items:center;gap:10px;justify-content:space-between;
     background:var(--input-bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin:7px 0}
@@ -184,7 +190,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v13</small></div>
+    <div class="brand">Fono Gestión <small>v14</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -295,6 +301,12 @@
       <div class="aviso" style="margin-top:0">💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.</div>
     </div>
 
+    <div class="ficha-card hidden" id="turnosSec">
+      <div class="modal-sec first">Turnos fijos (agenda semanal)</div>
+      <div id="turnosList"></div>
+      <button type="button" class="btn-ghost" id="btnAddTurno" style="margin-top:10px">+ Agregar turno fijo</button>
+    </div>
+
     <div class="ficha-card hidden" id="equipoSec">
       <div class="modal-sec first">Equipo profesional e informes</div>
       <div id="equipoList"></div>
@@ -343,6 +355,33 @@
       <button class="btn-primary" id="vincConfirm">Vincular</button>
     </div>
     <p style="font-size:12px;color:var(--muted);margin-top:12px">¿No está en la lista? Cargalo primero en la pantalla «Profesionales».</p>
+  </div>
+</div>
+
+<!-- ===== Modal Turno fijo ===== -->
+<div class="modal-bg hidden" id="turnoModalBg" style="z-index:70">
+  <div class="modal" style="max-width:420px">
+    <h3 id="turnoTitle">Nuevo turno fijo</h3>
+    <label>Día de la semana</label>
+    <select id="tu_dia">
+      <option value="1">Lunes</option>
+      <option value="2">Martes</option>
+      <option value="3">Miércoles</option>
+      <option value="4">Jueves</option>
+      <option value="5">Viernes</option>
+      <option value="6">Sábado</option>
+      <option value="7">Domingo</option>
+    </select>
+    <div class="row2">
+      <div><label>Hora inicio</label><input id="tu_ini" type="time"></div>
+      <div><label>Hora fin</label><input id="tu_fin" type="time"></div>
+    </div>
+    <div class="msg err" id="turnoMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnDelTurno">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelTurno">Cancelar</button>
+      <button class="btn-primary" id="btnSaveTurno">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -513,8 +552,10 @@ function abrirModalPac(id){
   $("btnEliminarPac").classList.toggle("hidden", !p);
   // Equipo profesional: la sección se activa solo en edición (necesita el paciente guardado)
   $("equipoSec").classList.toggle("hidden", !p);
+  $("turnosSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
-  if(p) loadEquipo(p.id); else { equipoPacId = null; vinculos = []; informes = []; }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); }
+  else { equipoPacId = null; vinculos = []; informes = []; turnos = []; }
   $("pacModalMsg").textContent = "";
   $("pacModalBg").classList.remove("hidden");
   marcarSnap($("pacModalBg"));
@@ -671,6 +712,65 @@ function switchView(v){
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active", s.id==="view-"+v));
   if(v==="pacientes") loadPacientes();
   if(v==="profesionales") loadProfCatalogo();
+}
+
+// ================== TURNOS FIJOS (plantilla recurrente) ==================
+let turnos = [], turnoEditId = null;
+const DIAS = ["","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+function hhmm(t){ return t ? String(t).slice(0,5) : ""; }
+
+async function loadTurnos(pacId){
+  const r = await sb.from("turnos_recurrentes").select("*").eq("paciente_id",pacId)
+    .order("dia_semana",{ascending:true}).order("hora_inicio",{ascending:true});
+  turnos = r.data || [];
+  renderTurnos();
+}
+function renderTurnos(){
+  const cont = $("turnosList");
+  if(!turnos.length){
+    cont.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:2px 0 6px">Sin turnos fijos. Tocá "+ Agregar turno fijo".</div>';
+    return;
+  }
+  let html = "";
+  turnos.forEach(t=>{
+    const horario = hhmm(t.hora_inicio) + (t.hora_fin ? " a " + hhmm(t.hora_fin) : "");
+    html += '<div class="turno-item" data-id="'+t.id+'">'
+      + '<span class="tu-dia">'+(DIAS[t.dia_semana]||"")+'</span>'
+      + '<span class="tu-hora">'+horario+'</span>'
+      + (t.activo===false ? '<span class="chip chip-inactivo">inactivo</span>' : '')
+      + '</div>';
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll(".turno-item").forEach(el=>el.addEventListener("click",()=>abrirTurno(el.dataset.id)));
+}
+function abrirTurno(id){
+  turnoEditId = id || null;
+  const t = id ? turnos.find(x=>x.id===id) : null;
+  $("turnoTitle").textContent = t ? "Editar turno fijo" : "Nuevo turno fijo";
+  $("tu_dia").value = t ? String(t.dia_semana) : "2";
+  $("tu_ini").value = t ? hhmm(t.hora_inicio) : "";
+  $("tu_fin").value = t ? hhmm(t.hora_fin) : "";
+  $("btnDelTurno").classList.toggle("hidden", !t);
+  $("turnoMsg").textContent = "";
+  $("turnoModalBg").classList.remove("hidden");
+  marcarSnap($("turnoModalBg"));
+}
+async function guardarTurno(){
+  const dia = parseInt($("tu_dia").value,10), ini = $("tu_ini").value, fin = $("tu_fin").value;
+  if(!ini){ $("turnoMsg").textContent = "Poné la hora de inicio."; return; }
+  const payload = { paciente_id: equipoPacId, dia_semana: dia, hora_inicio: ini, hora_fin: fin || null };
+  const res = turnoEditId
+    ? await sb.from("turnos_recurrentes").update(payload).eq("id",turnoEditId)
+    : await sb.from("turnos_recurrentes").insert(payload);
+  if(res.error){ $("turnoMsg").textContent = "No se pudo guardar."; return; }
+  $("turnoModalBg").classList.add("hidden");
+  loadTurnos(equipoPacId);
+}
+function eliminarTurno(){
+  if(!turnoEditId) return;
+  pedirConfirm("¿Eliminar este turno fijo? No borra las sesiones ya registradas.",
+    async ()=>{ await sb.from("turnos_recurrentes").delete().eq("id",turnoEditId); $("turnoModalBg").classList.add("hidden"); loadTurnos(equipoPacId); },
+    "Eliminar", "Cancelar");
 }
 
 // ================== CIERRE DE MODALES (Escape + aviso de cambios) ==================
@@ -929,6 +1029,11 @@ function initPacientes(){
   $("confirmYes").addEventListener("click",()=>{ const f=_confirmYes; cerrarConfirm(); if(f) f(); });
   $("confirmNo").addEventListener("click",cerrarConfirm);
   $("confirmBg").addEventListener("click",e=>{ if(e.target===$("confirmBg")) cerrarConfirm(); });
+  $("btnAddTurno").addEventListener("click",()=>abrirTurno(null));
+  $("btnSaveTurno").addEventListener("click",guardarTurno);
+  $("btnCancelTurno").addEventListener("click",()=>cerrarSeguro($("turnoModalBg")));
+  $("btnDelTurno").addEventListener("click",eliminarTurno);
+  $("turnoModalBg").addEventListener("click",e=>{ if(e.target===$("turnoModalBg")) cerrarSeguro($("turnoModalBg")); });
   $("btnVincularProf").addEventListener("click",abrirVincular);
   $("vincConfirm").addEventListener("click",confirmarVincular);
   $("vincCancel").addEventListener("click",()=>$("vincModalBg").classList.add("hidden"));
