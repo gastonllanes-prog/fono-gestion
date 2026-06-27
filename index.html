@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v26</title>
+<title>Fono Gestión v27</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -315,7 +315,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v26</small></div>
+    <div class="brand">Fono Gestión <small>v27</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -512,7 +512,9 @@
       <!-- Tab Historia clínica -->
       <div class="panel" data-ptp="historia">
         <div class="prof">
-          <div class="ph"><span class="role">Sesiones de fonoaudiología</span></div>
+          <div class="ph"><span class="role">Notas de sesión</span>
+            <button type="button" class="addnote" id="btnNuevaNota" style="margin:0 0 0 auto"><i class="ti ti-plus"></i> Nueva nota</button>
+          </div>
           <div class="timeline" id="histTimeline"></div>
         </div>
       </div>
@@ -708,6 +710,23 @@
       <button class="btn-danger hidden" id="btnDelInf">Eliminar</button>
       <button class="btn-ghost" id="btnCancelInf">Cancelar</button>
       <button class="btn-primary" id="btnSaveInf">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Nota de sesión ===== -->
+<div class="modal-bg hidden" id="notaModalBg" style="z-index:70">
+  <div class="modal escribir">
+    <h3 id="notaTitle">Nueva nota</h3>
+    <label>Fecha</label>
+    <input id="nt_fecha" type="date">
+    <label>¿Qué se trabajó en la sesión?</label>
+    <textarea id="nt_texto" placeholder="Escribí la nota de la sesión..."></textarea>
+    <div class="msg err" id="notaMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnDelNota">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelNota">Cancelar</button>
+      <button class="btn-primary" id="btnSaveNota">Guardar</button>
     </div>
   </div>
 </div>
@@ -949,14 +968,49 @@ function abrirModalPac(id){
 }
 function cerrarModalPac(){ switchView("pacientes"); }
 
+let notas = [], notaEditId = null;
 async function loadHistoria(pacId){
-  const r = await sb.from("sesiones").select("fecha,estado,nota").eq("paciente_id",pacId).order("fecha",{ascending:false});
-  const ses = (r.data||[]).filter(s=>s.nota || s.estado!=="agendada");
+  const r = await sb.from("notas_sesion").select("*").eq("paciente_id",pacId)
+    .order("fecha",{ascending:false}).order("created_at",{ascending:false});
+  notas = r.data || [];
+  renderNotas();
+}
+function renderNotas(){
   const cont = $("histTimeline");
-  if(!ses.length){ cont.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin sesiones registradas todavía.</div>'; return; }
-  const L={realizada:"realizada",cancelada_con_aviso:"cancelada (con aviso)",cancelada_mismo_dia:"cancelada (mismo día)",ausente:"ausente",agendada:"agendada"};
-  cont.innerHTML = ses.map(s=>'<div class="tl-item"><div class="date">'+fmtFecha(s.fecha)+' · '+(L[s.estado]||s.estado)+'</div>'
-    +(s.nota?'<div class="txt">'+esc(s.nota)+'</div>':'')+'</div>').join("");
+  if(!notas.length){ cont.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin notas registradas todavía.</div>'; return; }
+  cont.innerHTML = notas.map(n=>'<div class="tl-item" data-id="'+n.id+'" style="cursor:pointer">'
+    + '<div class="date">'+fmtFecha(n.fecha)+(n.origen==="agenda"?' · desde la agenda':'')+'</div>'
+    + '<div class="txt">'+(n.texto?esc(n.texto):'<span style="color:var(--muted2)">(sin texto — tocá para completar)</span>')+'</div></div>').join("");
+  cont.querySelectorAll(".tl-item").forEach(el=>el.addEventListener("click",()=>abrirNota(el.dataset.id)));
+}
+function abrirNota(id){
+  notaEditId = id || null;
+  const n = id ? notas.find(x=>x.id===id) : null;
+  $("notaTitle").textContent = n ? "Editar nota" : "Nueva nota";
+  $("nt_fecha").value = n ? (n.fecha||"") : hoyISO();
+  $("nt_texto").value = n ? (n.texto||"") : "";
+  $("btnDelNota").classList.toggle("hidden", !n);
+  $("notaMsg").className = "msg err"; $("notaMsg").textContent = "";
+  $("notaModalBg").classList.remove("hidden");
+  marcarSnap($("notaModalBg"));
+}
+async function guardarNota(){
+  const fecha = $("nt_fecha").value, texto = $("nt_texto").value.trim();
+  if(!fecha){ $("notaMsg").textContent = "Poné la fecha."; return; }
+  const btn = $("btnSaveNota"); btn.disabled = true; btn.textContent = "Guardando...";
+  const res = notaEditId
+    ? await sb.from("notas_sesion").update({ fecha, texto: texto||null }).eq("id",notaEditId)
+    : await sb.from("notas_sesion").insert({ paciente_id: pacEditId, fecha, texto: texto||null, origen:"manual" });
+  btn.disabled = false; btn.textContent = "Guardar";
+  if(res.error){ $("notaMsg").textContent = "No se pudo guardar."; return; }
+  $("notaModalBg").classList.add("hidden");
+  loadHistoria(pacEditId);
+}
+function eliminarNota(){
+  if(!notaEditId) return;
+  pedirConfirm("¿Eliminar esta nota?",
+    async ()=>{ await sb.from("notas_sesion").delete().eq("id",notaEditId); $("notaModalBg").classList.add("hidden"); loadHistoria(pacEditId); },
+    "Eliminar","Cancelar");
 }
 
 async function guardarPac(){
@@ -1426,10 +1480,19 @@ async function guardarSesion(){
   } else {
     const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:mas45($("se_ini").value),
       estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
-    res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload);
+    res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload).select().single();
   }
   btn.disabled=false; btn.textContent="Guardar";
   if(res.error){ $("sesMsg").textContent="No se pudo guardar."; return; }
+  if(!perm && $("se_estado").value==="realizada"){   // enlace con Historia clínica: crea la nota si no existe
+    const sid = sesEditId || (res.data && res.data.id);
+    if(sid){
+      const ex = await sb.from("notas_sesion").select("id").eq("sesion_id",sid).limit(1);
+      if(!ex.error && (!ex.data || !ex.data.length)){
+        await sb.from("notas_sesion").insert({ paciente_id:pac, fecha, texto:null, origen:"agenda", sesion_id:sid });
+      }
+    }
+  }
   $("sesModalBg").classList.add("hidden");
   loadAgenda();
 }
@@ -1752,6 +1815,11 @@ function initPacientes(){
   $("btnFotoDel").addEventListener("click",quitarFoto);
   $("pacBack").addEventListener("click",cerrarModalPac);
   $("btnEditarPac").addEventListener("click",()=>setEditablePac(true));
+  $("btnNuevaNota").addEventListener("click",()=>abrirNota(null));
+  $("btnSaveNota").addEventListener("click",guardarNota);
+  $("btnCancelNota").addEventListener("click",()=>cerrarSeguro($("notaModalBg")));
+  $("btnDelNota").addEventListener("click",eliminarNota);
+  $("notaModalBg").addEventListener("click",e=>{ if(e.target===$("notaModalBg")) cerrarSeguro($("notaModalBg")); });
   $("btnCancelarPac").addEventListener("click",()=>{ const p=pacientes.find(x=>x.id===pacEditId); rellenarPac(p); setEditablePac(false); $("pacModalMsg").textContent=""; });
   $("btnGuardarPac").addEventListener("click",guardarPac);
   $("btnEliminarPac").addEventListener("click",eliminarPac);
