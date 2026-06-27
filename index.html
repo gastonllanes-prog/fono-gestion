@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v10</title>
+<title>Fono Gestión v11</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -143,6 +143,14 @@
   .btn-mini{background:var(--accent-soft);color:var(--accent2);font-size:12px;padding:5px 11px;
     border-radius:8px;font-weight:600}
   .btn-mini:hover{background:#e2d9f7}
+  /* ---- Modal de escritura grande (informes) — Nancy ve poco ---- */
+  .modal.escribir{max-width:840px}
+  .modal.escribir h3{font-size:27px;margin-bottom:10px}
+  .modal.escribir label{font-size:15px;font-weight:600;color:var(--txt);margin-top:16px}
+  .modal.escribir input,.modal.escribir textarea{font-size:20px;font-weight:600;padding:16px}
+  .modal.escribir textarea{min-height:48vh;line-height:1.5}
+  .modal.escribir .modal-actions .btn-primary,.modal.escribir .modal-actions .btn-ghost,
+  .modal.escribir .modal-actions .btn-danger{font-size:16px;padding:13px 22px}
   .row2{display:flex;gap:10px;flex-wrap:wrap} .row2>div{flex:1;min-width:120px}
   .modal-actions{display:flex;gap:10px;margin-top:22px}
   .modal-actions .btn-primary{flex:1}
@@ -169,7 +177,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v10</small></div>
+    <div class="brand">Fono Gestión <small>v11</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -333,12 +341,12 @@
 
 <!-- ===== Modal Informe ===== -->
 <div class="modal-bg hidden" id="infModalBg" style="z-index:70">
-  <div class="modal" style="max-width:460px">
+  <div class="modal escribir">
     <h3 id="infTitle">Nuevo informe</h3>
     <label>Fecha</label>
     <input id="if_fecha" type="date">
     <label>Informe / observación</label>
-    <textarea id="if_texto" style="min-height:120px" placeholder="Ej: está trabajando las vocales..."></textarea>
+    <textarea id="if_texto" placeholder="Escribí acá lo que se trabajó en la sesión..."></textarea>
     <div class="msg err" id="infMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnDelInf">Eliminar</button>
