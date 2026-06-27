@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v8</title>
+<title>Fono Gestión v9</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -151,7 +151,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v8</small></div>
+    <div class="brand">Fono Gestión <small>v9</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -291,6 +291,18 @@
       <button class="btn-danger hidden" id="btnDelProf">Eliminar</button>
       <button class="btn-ghost" id="btnCancelProf">Cancelar</button>
       <button class="btn-primary" id="btnSaveProf">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Cartel de confirmación (cambios sin guardar, etc.) ===== -->
+<div class="modal-bg hidden" id="confirmBg" style="z-index:80">
+  <div class="modal" style="max-width:380px">
+    <h3 id="confirmTitle">Atención</h3>
+    <p id="confirmMsg" style="color:var(--muted);font-size:14px;margin:0"></p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="confirmNo">Seguir editando</button>
+      <button class="btn-danger" id="confirmYes">Descartar cambios</button>
     </div>
   </div>
 </div>
@@ -587,10 +599,20 @@ function switchView(v){
 // ================== CIERRE DE MODALES (Escape + aviso de cambios) ==================
 function snapModal(mb){ return Array.from(mb.querySelectorAll("input,select,textarea")).map(e=>e.value).join(""); }
 function marcarSnap(mb){ mb._snap = snapModal(mb); }
+let _confirmYes = null;
+function pedirConfirm(msg, onYes){
+  $("confirmMsg").textContent = msg;
+  _confirmYes = onYes;
+  $("confirmBg").classList.remove("hidden");
+}
+function cerrarConfirm(){ $("confirmBg").classList.add("hidden"); _confirmYes = null; }
+
 function cerrarSeguro(mb){
   if(mb.classList.contains("hidden")) return;
+  if(mb === $("confirmBg")){ cerrarConfirm(); return; }
   if(mb._snap !== undefined && snapModal(mb) !== mb._snap){
-    if(!confirm("Hay cambios sin guardar. ¿Cerrar y descartarlos?")) return;
+    pedirConfirm("Hay cambios sin guardar. ¿Cerrar y descartarlos?", ()=>mb.classList.add("hidden"));
+    return;
   }
   mb.classList.add("hidden");
 }
@@ -619,6 +641,9 @@ function initPacientes(){
   $("btnCancelProf").addEventListener("click",()=>cerrarSeguro($("profModalBg")));
   $("btnDelProf").addEventListener("click",eliminarProf);
   $("profModalBg").addEventListener("click",e=>{ if(e.target===$("profModalBg")) cerrarSeguro($("profModalBg")); });
+  $("confirmYes").addEventListener("click",()=>{ const f=_confirmYes; cerrarConfirm(); if(f) f(); });
+  $("confirmNo").addEventListener("click",cerrarConfirm);
+  $("confirmBg").addEventListener("click",e=>{ if(e.target===$("confirmBg")) cerrarConfirm(); });
 }
 
 $("loginForm").addEventListener("submit", async (e) => {
