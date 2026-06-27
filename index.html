@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v18</title>
+<title>Fono Gestión v19</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -39,23 +40,38 @@
   .msg{margin-top:14px;font-size:13px;min-height:18px}
   .msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
 
-  /* ---- APP ---- */
-  #app{display:flex;flex-direction:column;min-height:100vh}
-  .topbar{display:flex;align-items:center;justify-content:space-between;
-    padding:14px 18px;background:var(--card);
-    border-bottom:3px solid transparent;
-    border-image:linear-gradient(90deg,var(--accent),var(--menta),var(--durazno)) 1}
-  .topbar .brand{font-weight:700;color:var(--accent2)}
-  .topbar .brand small{color:var(--muted);font-weight:400;margin-left:6px}
-  .topbar .right{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
-  .logout{background:transparent;color:var(--muted);font-size:13px}
-  .logout:hover{color:var(--txt)}
-  .nav{display:flex;gap:4px;flex-wrap:wrap}
-  .nav-item{background:transparent;color:var(--muted);font-size:14px;padding:7px 13px;border-radius:9px}
-  .nav-item:hover{background:var(--accent-soft);color:var(--accent2)}
+  /* ---- APP (menú lateral) ---- */
+  #app{display:flex;flex-direction:row;min-height:100vh}
+  .sidebar{width:230px;flex:0 0 230px;background:var(--card);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
+  .sidebar .brand{font-weight:700;color:var(--accent2);font-size:19px;padding:6px 10px 20px}
+  .sidebar .brand small{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
+  .nav{display:flex;flex-direction:column;gap:5px}
+  .nav-item{display:flex;align-items:center;gap:12px;background:transparent;color:var(--txt);
+    font-size:15.5px;padding:12px 13px;border-radius:11px;text-align:left;width:100%}
+  .nav-item i{font-size:20px;color:var(--muted);width:22px;text-align:center}
+  .nav-item:hover{background:var(--accent-soft)}
   .nav-item.active{background:var(--accent-soft);color:var(--accent2);font-weight:700}
-  .content{flex:1;padding:24px 26px;max-width:1650px;width:100%;margin:0 auto}
+  .nav-item.active i{color:var(--accent2)}
+  .side-foot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+  .side-foot .who{color:var(--muted);font-size:12px;padding:0 8px 8px;word-break:break-all}
+  .logout{display:flex;align-items:center;gap:10px;background:transparent;color:var(--err);
+    font-size:14.5px;padding:10px 11px;border-radius:10px;width:100%;text-align:left}
+  .logout i{font-size:19px}
+  .logout:hover{background:#fdecec}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .content{flex:1;padding:30px 36px;width:100%}
   .view{display:none} .view.active{display:block}
+  @media(max-width:720px){
+    #app{flex-direction:column}
+    .sidebar{width:100%;flex:none;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px}
+    .sidebar .brand{padding:6px 10px}
+    .nav{flex-direction:row;flex-wrap:wrap}
+    .nav-item i{display:none}
+    .side-foot{margin:0 0 0 auto;border:none;padding:0;display:flex;align-items:center}
+    .side-foot .who{display:none}
+    .content{padding:18px}
+  }
 
   /* ---- Encabezado de página ---- */
   .page-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
@@ -155,7 +171,7 @@
     padding:6px 12px;font-size:16px;color:var(--accent2)}
   .cal-nav button:hover{border-color:var(--accent)}
   .cal-title{font-size:18px;font-weight:700;min-width:175px;text-align:center;text-transform:capitalize}
-  #view-agenda.active{width:95vw;position:relative;left:50%;transform:translateX(-50%);max-width:1900px}
+  #view-agenda.active{width:100%}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
   .cal-dow{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
   .cal-cell{min-height:132px;background:var(--card);border:1px solid var(--line);border-radius:10px;
@@ -218,20 +234,21 @@
 
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
-  <div class="topbar">
-    <div class="brand">Fono Gestión <small>v18</small></div>
+  <aside class="sidebar">
+    <div class="brand">Fono Gestión <small>v19</small></div>
     <nav class="nav" id="nav">
-      <button class="nav-item active" data-view="pacientes">Pacientes</button>
-      <button class="nav-item" data-view="agenda">Agenda</button>
-      <button class="nav-item" data-view="profesionales">Profesionales</button>
-      <button class="nav-item" data-view="config">Configuración</button>
+      <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
+      <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
+      <button class="nav-item" data-view="profesionales"><i class="ti ti-stethoscope"></i>Profesionales</button>
+      <button class="nav-item" data-view="config"><i class="ti ti-settings"></i>Configuración</button>
     </nav>
-    <div class="right">
-      <span id="userEmail"></span>
-      <button class="logout" id="logoutBtn">Salir</button>
+    <div class="side-foot">
+      <div class="who" id="userEmail"></div>
+      <button class="logout" id="logoutBtn"><i class="ti ti-logout"></i>Salir</button>
     </div>
-  </div>
+  </aside>
 
+  <main class="main">
   <div class="content">
     <!-- ===== Vista Pacientes ===== -->
     <section class="view active" id="view-pacientes">
@@ -299,6 +316,7 @@
       <div class="empty hidden" id="profEmpty"></div>
     </section>
   </div>
+  </main>
 </section>
 
 <!-- ===== Modal Paciente ===== -->
