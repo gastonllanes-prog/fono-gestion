@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v4</title>
+<title>Fono Gestión v5</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -137,9 +137,10 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v4</small></div>
+    <div class="brand">Fono Gestión <small>v5</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
+      <button class="nav-item" data-view="profesionales">Profesionales</button>
     </nav>
     <div class="right">
       <span id="userEmail"></span>
@@ -157,6 +158,17 @@
       </div>
       <div class="cards" id="pacCards"></div>
       <div class="empty hidden" id="pacEmpty"></div>
+    </section>
+
+    <!-- ===== Vista Profesionales (catálogo) ===== -->
+    <section class="view" id="view-profesionales">
+      <div class="page-head">
+        <h2>Profesionales</h2>
+        <div class="search"><input id="profSearch" placeholder="Buscar por nombre o especialidad..."></div>
+        <button class="btn-primary" id="btnNuevoProf">+ Nuevo profesional</button>
+      </div>
+      <div class="cards" id="profCards"></div>
+      <div class="empty hidden" id="profEmpty"></div>
     </section>
   </div>
 </section>
@@ -210,12 +222,11 @@
     <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
 
     <div id="equipoSec" class="hidden">
-      <div class="modal-sec">Equipo profesional</div>
-      <div id="profList"></div>
-      <button type="button" class="btn-ghost" id="btnAddProf" style="margin-top:8px">+ Agregar profesional</button>
+      <div class="modal-sec">Equipo profesional e informes</div>
+      <div class="aviso">🔧 Acá vas a poder vincular profesionales del catálogo y cargar informes con fecha (próximo paso). Por ahora cargá los profesionales en la pantalla «Profesionales».</div>
     </div>
     <div id="equipoAviso" class="aviso hidden">
-      💡 Guardá el paciente primero. Al volver a abrirlo vas a poder cargar su equipo profesional.
+      💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.
     </div>
 
     <div id="f_estado_wrap" class="hidden">
@@ -246,8 +257,6 @@
       <div><label>Apellido</label><input id="pf_apellido"></div>
     </div>
     <label>Teléfono</label><input id="pf_tel" inputmode="tel">
-    <label>¿Qué está trabajando? / Informes</label>
-    <textarea id="pf_trab" placeholder="Ej: está trabajando las vocales..."></textarea>
     <div class="msg err" id="profModalMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnDelProf">Eliminar</button>
@@ -385,10 +394,9 @@ function abrirModalPac(id){
   toggleOS();
   $("f_estado_wrap").classList.toggle("hidden", !p);   // estado solo al editar
   $("btnEliminarPac").classList.toggle("hidden", !p);
-  // Equipo profesional: solo en edición (necesita el paciente ya guardado)
+  // Equipo profesional: la sección se activa solo en edición (la vinculación llega en B2)
   $("equipoSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
-  if(p){ loadProfesionales(p.id); } else { profesionales = []; profPacienteId = null; }
   $("pacModalMsg").textContent = "";
   $("pacModalBg").classList.remove("hidden");
 }
@@ -450,51 +458,60 @@ async function eliminarPac(){
   cerrarModalPac(); loadPacientes();
 }
 
-// ================== EQUIPO PROFESIONAL ==================
+// ================== PROFESIONALES (catálogo global) ==================
 const ESPECIALIDADES = ["Psicopedagoga","Psicóloga/o infantil","Terapista ocupacional (T.O.)",
   "Psicomotricista","Neuropediatra","Acompañante terapéutico (AT)","Maestra integradora",
   "Kinesióloga/o","Otorrinolaringólogo (ORL)","Pediatra","Psiquiatra infantil","Nutricionista"];
-let profesionales = [], profEditId = null, profPacienteId = null;
+let profCatalogo = [], profCatEditId = null;
 
 function fillEspList(){ $("esplist").innerHTML = ESPECIALIDADES.map(e=>'<option value="'+esc(e)+'">').join(""); }
 
-async function loadProfesionales(pacId){
-  profPacienteId = pacId;
-  const r = await sb.from("profesionales").select("*").eq("paciente_id",pacId).order("created_at",{ascending:true});
-  profesionales = r.data || [];
-  renderProfesionales();
+async function loadProfCatalogo(){
+  const r = await sb.from("profesionales").select("*").order("apellido",{ascending:true});
+  profCatalogo = r.data || [];
+  renderProfCatalogo();
 }
 
-function renderProfesionales(){
-  const cont = $("profList");
-  if(!profesionales.length){
-    cont.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">Todavía no cargaste profesionales.</div>';
+function renderProfCatalogo(){
+  const q = ($("profSearch").value||"").toLowerCase().trim();
+  const list = profCatalogo.filter(p=>{
+    if(!q) return true;
+    return ((p.nombre||"")+" "+(p.apellido||"")+" "+(p.especialidad||"")).toLowerCase().includes(q);
+  });
+  const cont = $("profCards"), empty = $("profEmpty");
+  if(!list.length){
+    cont.innerHTML = "";
+    empty.classList.remove("hidden");
+    empty.textContent = profCatalogo.length
+      ? "No hay profesionales que coincidan."
+      : "Todavía no cargaste profesionales. Tocá “+ Nuevo profesional”.";
     return;
   }
+  empty.classList.add("hidden");
   let html = "";
-  profesionales.forEach(p=>{
-    const nom = esc(((p.nombre||"")+" "+(p.apellido||"")).trim());
-    html += '<div class="prof-item" data-id="'+p.id+'">'
-      + '<div class="pi-top"><span class="pi-esp">'+(esc(p.especialidad)||"Profesional")+'</span>'
-      + (p.telefono?'<span class="pi-tel">'+esc(p.telefono)+'</span>':'')+'</div>'
-      + (nom?'<div class="pi-nom">'+nom+'</div>':'')
-      + (p.trabajando?'<div class="pi-trab">'+esc(p.trabajando)+'</div>':'')
-      + '</div>';
+  list.forEach(p=>{
+    const nom = esc(((p.nombre||"")+" "+(p.apellido||"")).trim()) || "(sin nombre)";
+    const ini = (((p.nombre||"")[0]||"")+((p.apellido||"")[0]||"")).toUpperCase() || "?";
+    html += '<div class="card-pac" data-id="'+p.id+'">'
+      + '<div class="avatar" style="background:'+avatarColor(nom)+'">'+esc(ini)+'</div>'
+      + '<div class="info"><div class="nom">'+nom+'</div>'
+      + (p.telefono?'<div class="meta">📞 '+esc(p.telefono)+'</div>':'')
+      + '<div class="chips"><span class="chip chip-os">'+(esc(p.especialidad)||"Profesional")+'</span></div>'
+      + '</div></div>';
   });
   cont.innerHTML = html;
-  cont.querySelectorAll(".prof-item").forEach(el=>
+  cont.querySelectorAll(".card-pac").forEach(el=>
     el.addEventListener("click",()=>abrirModalProf(el.dataset.id)));
 }
 
 function abrirModalProf(id){
-  profEditId = id || null;
-  const p = id ? profesionales.find(x=>x.id===id) : null;
+  profCatEditId = id || null;
+  const p = id ? profCatalogo.find(x=>x.id===id) : null;
   $("profModalTitle").textContent = p ? "Editar profesional" : "Nuevo profesional";
   $("pf_esp").value      = p ? (p.especialidad||"") : "";
   $("pf_nombre").value   = p ? (p.nombre||"") : "";
   $("pf_apellido").value = p ? (p.apellido||"") : "";
   $("pf_tel").value      = p ? (p.telefono||"") : "";
-  $("pf_trab").value     = p ? (p.trabajando||"") : "";
   $("btnDelProf").classList.toggle("hidden", !p);
   $("profModalMsg").textContent = "";
   $("profModalBg").classList.remove("hidden");
@@ -503,34 +520,43 @@ function cerrarModalProf(){ $("profModalBg").classList.add("hidden"); }
 
 async function guardarProf(){
   const msg = $("profModalMsg"); msg.textContent = "";
-  const esp = $("pf_esp").value.trim();
-  if(!esp){ msg.textContent = "Poné al menos la especialidad."; return; }
+  const esp = $("pf_esp").value.trim(), nombre = $("pf_nombre").value.trim();
+  if(!esp && !nombre){ msg.textContent = "Poné al menos especialidad o nombre."; return; }
   const payload = {
-    paciente_id: profPacienteId, especialidad: esp,
-    nombre:    $("pf_nombre").value.trim() || null,
-    apellido:  $("pf_apellido").value.trim() || null,
-    telefono:  $("pf_tel").value.trim() || null,
-    trabajando:$("pf_trab").value.trim() || null
+    especialidad: esp || null,
+    nombre:   nombre || null,
+    apellido: $("pf_apellido").value.trim() || null,
+    telefono: $("pf_tel").value.trim() || null
   };
   const btn = $("btnSaveProf"); btn.disabled = true; btn.textContent = "Guardando...";
-  const res = profEditId
-    ? await sb.from("profesionales").update(payload).eq("id",profEditId)
+  const res = profCatEditId
+    ? await sb.from("profesionales").update(payload).eq("id",profCatEditId)
     : await sb.from("profesionales").insert(payload);
   btn.disabled = false; btn.textContent = "Guardar";
   if(res.error){ msg.textContent = "No se pudo guardar."; return; }
-  cerrarModalProf(); loadProfesionales(profPacienteId);
+  cerrarModalProf(); loadProfCatalogo();
 }
 
 async function eliminarProf(){
-  if(!profEditId) return;
-  if(!confirm("¿Eliminar este profesional?")) return;
-  const res = await sb.from("profesionales").delete().eq("id",profEditId);
+  if(!profCatEditId) return;
+  if(!confirm("¿Eliminar este profesional del catálogo?\nSe va a desvincular de los pacientes que lo tengan.")) return;
+  const res = await sb.from("profesionales").delete().eq("id",profCatEditId);
   if(res.error){ $("profModalMsg").textContent = "No se pudo eliminar."; return; }
-  cerrarModalProf(); loadProfesionales(profPacienteId);
+  cerrarModalProf(); loadProfCatalogo();
+}
+
+// ================== NAVEGACIÓN ENTRE VISTAS ==================
+function switchView(v){
+  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active", b.dataset.view===v));
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active", s.id==="view-"+v));
+  if(v==="pacientes") loadPacientes();
+  if(v==="profesionales") loadProfCatalogo();
 }
 
 function initPacientes(){
   fillEspList();
+  document.querySelectorAll(".nav-item").forEach(b=>
+    b.addEventListener("click",()=>switchView(b.dataset.view)));
   $("btnNuevoPac").addEventListener("click",()=>abrirModalPac(null));
   $("btnCancelarPac").addEventListener("click",cerrarModalPac);
   $("btnGuardarPac").addEventListener("click",guardarPac);
@@ -538,7 +564,8 @@ function initPacientes(){
   $("f_cobertura").addEventListener("change",toggleOS);
   $("pacSearch").addEventListener("input",renderPacientes);
   $("pacModalBg").addEventListener("click",e=>{ if(e.target===$("pacModalBg")) cerrarModalPac(); });
-  $("btnAddProf").addEventListener("click",()=>abrirModalProf(null));
+  $("btnNuevoProf").addEventListener("click",()=>abrirModalProf(null));
+  $("profSearch").addEventListener("input",renderProfCatalogo);
   $("btnSaveProf").addEventListener("click",guardarProf);
   $("btnCancelProf").addEventListener("click",cerrarModalProf);
   $("btnDelProf").addEventListener("click",eliminarProf);
