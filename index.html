@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v15</title>
+<title>Fono Gestión v16</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -155,9 +155,10 @@
     padding:6px 12px;font-size:16px;color:var(--accent2)}
   .cal-nav button:hover{border-color:var(--accent)}
   .cal-title{font-size:18px;font-weight:700;min-width:175px;text-align:center;text-transform:capitalize}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  #view-agenda.active{width:95vw;position:relative;left:50%;transform:translateX(-50%);max-width:1900px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
   .cal-dow{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
-  .cal-cell{min-height:104px;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  .cal-cell{min-height:132px;background:var(--card);border:1px solid var(--line);border-radius:10px;
     padding:6px;cursor:pointer;overflow:hidden;transition:.12s}
   .cal-cell:hover{border-color:var(--accent)}
   .cal-cell.otro{opacity:.45}
@@ -212,7 +213,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v15</small></div>
+    <div class="brand">Fono Gestión <small>v16</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="agenda">Agenda</button>
@@ -405,9 +406,16 @@
     <h3 id="sesTitle">Agendar sesión</h3>
     <label>Paciente</label>
     <select id="se_pac"></select>
+    <div id="se_tipo_wrap">
+      <label>Tipo de turno</label>
+      <select id="se_tipo">
+        <option value="casual">Solo este día (casual)</option>
+        <option value="permanente">Fijo / permanente (todas las semanas)</option>
+      </select>
+    </div>
     <div class="row2">
       <div><label>Fecha</label><input id="se_fecha" type="date"></div>
-      <div><label>Estado</label>
+      <div id="se_estado_wrap"><label>Estado</label>
         <select id="se_estado">
           <option value="agendada">Agendada</option>
           <option value="realizada">Realizada (fue)</option>
@@ -421,8 +429,11 @@
       <div><label>Hora inicio</label><input id="se_ini" type="time"></div>
       <div><label>Hora fin</label><input id="se_fin" type="time"></div>
     </div>
-    <label>Nota clínica de la sesión</label>
-    <textarea id="se_nota" style="min-height:90px" placeholder="Qué se trabajó en la sesión..."></textarea>
+    <div id="se_nota_wrap">
+      <label>Nota clínica de la sesión</label>
+      <textarea id="se_nota" style="min-height:90px" placeholder="Qué se trabajó en la sesión..."></textarea>
+    </div>
+    <div id="se_hint" class="aviso hidden" style="margin-top:10px"></div>
     <div class="msg err" id="sesMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnDelSes">Eliminar</button>
@@ -858,6 +869,22 @@ function fillPacSelect(sel){
 }
 function baseSes(){ $("sesMsg").textContent=""; $("sesModalBg").classList.remove("hidden"); marcarSnap($("sesModalBg")); }
 
+function diaDe(fechaStr){ if(!fechaStr) return null; const p=fechaStr.split("-"); return isoDay(new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))); }
+function camposSes(perm){   // muestra/oculta segun tipo
+  $("se_estado_wrap").classList.toggle("hidden", perm);
+  $("se_nota_wrap").classList.toggle("hidden", perm);
+  const hint=$("se_hint");
+  if(perm){
+    hint.classList.remove("hidden");
+    const dia=diaDe($("se_fecha").value);
+    hint.textContent = "Se va a repetir todas las semanas el "+(DIAS[dia]||"")+($("se_ini").value?(" a las "+$("se_ini").value):"")+".";
+  } else hint.classList.add("hidden");
+}
+function toggleTipo(){
+  const perm = $("se_tipo").value==="permanente" && !$("se_tipo_wrap").classList.contains("hidden");
+  camposSes(perm);
+}
+
 function abrirSesionNueva(fecha){
   sesEditId=null; sesTurnoId=null;
   $("sesTitle").textContent="Agendar sesión";
@@ -865,6 +892,7 @@ function abrirSesionNueva(fecha){
   $("se_fecha").value=fecha||hoyISO();
   $("se_estado").value="agendada"; $("se_ini").value=""; $("se_fin").value=""; $("se_nota").value="";
   $("btnDelSes").classList.add("hidden");
+  $("se_tipo_wrap").classList.remove("hidden"); $("se_tipo").value="casual"; camposSes(false);
   baseSes();
 }
 function abrirSesionProy(turnoId, fecha){
@@ -876,6 +904,7 @@ function abrirSesionProy(turnoId, fecha){
   $("se_estado").value="realizada";
   $("se_ini").value=hhmm(t.hora_inicio); $("se_fin").value=hhmm(t.hora_fin); $("se_nota").value="";
   $("btnDelSes").classList.add("hidden");
+  $("se_tipo_wrap").classList.add("hidden"); camposSes(false);
   baseSes();
 }
 function abrirSesionEdit(sesId){
@@ -887,6 +916,7 @@ function abrirSesionEdit(sesId){
   $("se_estado").value=s.estado||"agendada";
   $("se_ini").value=hhmm(s.hora_inicio); $("se_fin").value=hhmm(s.hora_fin); $("se_nota").value=s.nota||"";
   $("btnDelSes").classList.remove("hidden");
+  $("se_tipo_wrap").classList.add("hidden"); camposSes(false);
   baseSes();
 }
 async function guardarSesion(){
@@ -894,10 +924,18 @@ async function guardarSesion(){
   if(!pac){ $("sesMsg").textContent="Elegí un paciente."; return; }
   const fecha=$("se_fecha").value;
   if(!fecha){ $("sesMsg").textContent="Poné la fecha."; return; }
-  const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:$("se_fin").value||null,
-    estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
+  const perm = $("se_tipo").value==="permanente" && !$("se_tipo_wrap").classList.contains("hidden");
   const btn=$("btnSaveSes"); btn.disabled=true; btn.textContent="Guardando...";
-  const res= sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload);
+  let res;
+  if(perm){
+    const ini=$("se_ini").value;
+    if(!ini){ btn.disabled=false; btn.textContent="Guardar"; $("sesMsg").textContent="Para un turno fijo poné la hora de inicio."; return; }
+    res = await sb.from("turnos_recurrentes").insert({ paciente_id:pac, dia_semana:diaDe(fecha), hora_inicio:ini, hora_fin:$("se_fin").value||null, vigencia_desde:fecha });
+  } else {
+    const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:$("se_fin").value||null,
+      estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
+    res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload);
+  }
   btn.disabled=false; btn.textContent="Guardar";
   if(res.error){ $("sesMsg").textContent="No se pudo guardar."; return; }
   $("sesModalBg").classList.add("hidden");
@@ -1237,6 +1275,9 @@ function initPacientes(){
   $("calHoy").addEventListener("click",irHoy);
   $("btnNuevaSes").addEventListener("click",()=>abrirSesionNueva(hoyISO()));
   $("btnSaveSes").addEventListener("click",guardarSesion);
+  $("se_tipo").addEventListener("change",toggleTipo);
+  $("se_fecha").addEventListener("change",toggleTipo);
+  $("se_ini").addEventListener("change",toggleTipo);
   $("btnCancelSes").addEventListener("click",()=>cerrarSeguro($("sesModalBg")));
   $("btnDelSes").addEventListener("click",eliminarSesion);
   $("sesModalBg").addEventListener("click",e=>{ if(e.target===$("sesModalBg")) cerrarSeguro($("sesModalBg")); });
