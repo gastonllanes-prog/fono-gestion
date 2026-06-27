@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v7</title>
+<title>Fono Gestión v8</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -116,9 +116,9 @@
   .modal.wide h3{font-size:23px;margin-bottom:4px}
   .modal.wide label{font-size:12.5px;color:var(--muted)}
   .modal.wide input,.modal.wide select,.modal.wide textarea{font-size:15px;padding:12px}
-  .ficha-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-    gap:16px;align-items:start;margin-top:10px}
-  .ficha-card{background:var(--input-bg);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .ficha-grid{columns:3 300px;column-gap:16px;margin-top:10px}
+  .ficha-card{background:var(--input-bg);border:1px solid var(--line);border-radius:13px;
+    padding:16px 18px;margin-bottom:16px;break-inside:avoid;-webkit-column-break-inside:avoid}
   .ficha-card .modal-sec{margin:0 0 10px;border-top:none;padding-top:0}
   .ficha-card label{margin-top:11px}
   .ficha-card input,.ficha-card select,.ficha-card textarea{background:var(--card)}
@@ -151,7 +151,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v7</small></div>
+    <div class="brand">Fono Gestión <small>v8</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
