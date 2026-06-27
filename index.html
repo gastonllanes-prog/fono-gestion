@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v25</title>
+<title>Fono Gestión v26</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -315,7 +315,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v25</small></div>
+    <div class="brand">Fono Gestión <small>v26</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -774,10 +774,23 @@ function edad(f){ if(!f) return null; const d=new Date(f), h=new Date();
   let e=h.getFullYear()-d.getFullYear(); const m=h.getMonth()-d.getMonth();
   if(m<0||(m===0&&h.getDate()<d.getDate())) e--; return e; }
 function nombreOS(id){ const o=obras.find(x=>x.id===id); return o?o.nombre:""; }
-const PALETA = ["#127E76","#2D6BB5","#B5790F","#C0563B","#7A5AC2","#2E9E5B","#C2407A","#5C6679"];
+const PALETA = [
+  {bg:"#FAD9E0",tx:"#B0476A"},{bg:"#FBE0CE",tx:"#C2682F"},{bg:"#FBF0C9",tx:"#8A6E12"},
+  {bg:"#D6F0DE",tx:"#2E8B57"},{bg:"#CFEEEA",tx:"#1E8378"},{bg:"#D4E8F7",tx:"#2D6BB5"},
+  {bg:"#E4DCF6",tx:"#6B4FB0"},{bg:"#EFD9EE",tx:"#9C4F94"},{bg:"#F5DAD3",tx:"#BC5B45"},
+  {bg:"#E5EECB",tx:"#6E8B2E"},{bg:"#DEE3EA",tx:"#566173"},{bg:"#ECE3D4",tx:"#8A7444"}
+];
+function txDe(bg){ const p=PALETA.find(x=>x.bg===bg); return p?p.tx:"#566173"; }
+function colorMenosUsado(){
+  const conteo={}; PALETA.forEach(c=>conteo[c.bg]=0);
+  pacientes.forEach(p=>{ if(p.color && conteo[p.color]!=null) conteo[p.color]++; });
+  let min=PALETA[0].bg, minN=Infinity;
+  PALETA.forEach(c=>{ if(conteo[c.bg]<minN){ minN=conteo[c.bg]; min=c.bg; } });
+  return min;
+}
 function renderSwatches(sel){
   $("f_color").value = sel||"";
-  $("f_colorSwatches").innerHTML = PALETA.map(c=>'<button type="button" class="swatch'+(c===sel?' sel':'')+'" data-c="'+c+'" style="background:'+c+'" aria-label="color"></button>').join("");
+  $("f_colorSwatches").innerHTML = PALETA.map(c=>'<button type="button" class="swatch'+(c.bg===sel?' sel':'')+'" data-c="'+c.bg+'" style="background:'+c.bg+'" aria-label="color"></button>').join("");
   $("f_colorSwatches").querySelectorAll(".swatch").forEach(b=>b.addEventListener("click",()=>renderSwatches(b.dataset.c)));
 }
 function mas45(t){
@@ -786,7 +799,7 @@ function mas45(t){
   m=((m%1440)+1440)%1440;
   return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 }
-function pacColor(id){ const p=pacientes.find(x=>x.id===id); return (p&&p.color)?p.color:"#94A3B8"; }
+function pacColor(id){ const p=pacientes.find(x=>x.id===id); return (p&&p.color)?p.color:"#DEE3EA"; }
 
 async function loadPacientes(){
   const [rp, ro, rt] = await Promise.all([
@@ -852,7 +865,8 @@ function renderPacientes(){
     const foto = fotoUrls[p.id];
     const av = foto ? '<img src="'+foto+'" alt="">' : esc(inicial(p));
     const avStyle = foto ? '' : 'background:'+avatarColor(nom);
-    html += '<button class="card'+(inactivo?" inactivo":"")+'" data-id="'+p.id+'">'
+    const bar = p.color || "var(--line)";
+    html += '<button class="card'+(inactivo?" inactivo":"")+'" data-id="'+p.id+'" style="border-top:5px solid '+bar+'">'
       + '<div class="top"><div class="avatar" style="'+avStyle+'">'+av+'</div>'
       + '<div><div class="name">'+nom+'</div><div class="dni">'+dni+'</div></div></div>'
       + '<div class="crow">'+cobChip+estadoPill+'</div>'
@@ -886,7 +900,7 @@ function rellenarPac(p){
   $("f_grado").value      = p ? (p.grado||"") : "";
   $("f_integradora").value= p ? (p.integradora||"") : "";
   $("f_estado").value     = p ? (p.estado||"activo") : "activo";
-  renderSwatches(p ? (p.color||"") : PALETA[0]);
+  renderSwatches(p ? (p.color||colorMenosUsado()) : colorMenosUsado());
   toggleOS();
 }
 function headerPac(p){
@@ -1327,7 +1341,8 @@ function renderAgenda(){
     items.slice(0,5).forEach(it=>{
       const cls = it.tipo==="proy" ? "proy" : it.estado;
       const attr = it.tipo==="ses" ? ('data-ses="'+it.id+'"') : ('data-proy="'+it.id+'" data-fecha="'+it.fecha+'"');
-      const sty = 'border-left-color:'+it.color+';background:'+it.color+'22';
+      const tx = txDe(it.color);
+      const sty = 'background:'+it.color+';color:'+tx+';border-left-color:'+tx;
       inner += '<div class="cal-turno '+cls+'" style="'+sty+'" '+attr+'><span class="ch">'+(it.hora||"")+'</span>'+esc(it.txt)+'</div>';
     });
     if(items.length>5) inner += '<div style="font-size:11px;color:var(--muted)">+'+(items.length-5)+' más</div>';
