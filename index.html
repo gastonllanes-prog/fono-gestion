@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v11</title>
+<title>Fono Gestión v12</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -143,6 +143,13 @@
   .btn-mini{background:var(--accent-soft);color:var(--accent2);font-size:12px;padding:5px 11px;
     border-radius:8px;font-weight:600}
   .btn-mini:hover{background:#e2d9f7}
+  /* ---- Adjuntos de informes ---- */
+  .adj-item{display:flex;align-items:center;gap:10px;justify-content:space-between;
+    background:var(--input-bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin:7px 0}
+  .adj-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+  .adj-size{font-size:12px;color:var(--muted)}
+  .adj-dl{color:var(--accent2);font-weight:700;font-size:13px;background:transparent;padding:4px 8px}
+  .adj-del{color:var(--err);background:transparent;font-size:15px;padding:4px 8px}
   /* ---- Modal de escritura grande (informes) — Nancy ve poco ---- */
   .modal.escribir{max-width:840px}
   .modal.escribir h3{font-size:27px;margin-bottom:10px}
@@ -177,7 +184,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v11</small></div>
+    <div class="brand">Fono Gestión <small>v12</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -347,6 +354,12 @@
     <input id="if_fecha" type="date">
     <label>Informe / observación</label>
     <textarea id="if_texto" placeholder="Escribí acá lo que se trabajó en la sesión..."></textarea>
+    <div id="adjSec" class="hidden">
+      <label>Archivos adjuntos (PDF, Word, Excel, fotos...)</label>
+      <div id="adjList"></div>
+      <input type="file" id="adjFile" multiple style="margin-top:8px;font-size:15px">
+      <div id="adjMsg" style="font-size:13px;color:var(--muted);margin-top:6px"></div>
+    </div>
     <div class="msg err" id="infMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnDelInf">Eliminar</button>
@@ -398,6 +411,7 @@ function mostrarApp(session){
   appSec.classList.remove("hidden");
   $("userEmail").textContent = session.user.email;
   // owner_id de Nancy = session.user.id  (lo usaremos en todas las tablas con RLS)
+  OWNER_ID = session.user.id;  // se usa como carpeta privada en Storage
   if (!window._pacInit){ initPacientes(); window._pacInit = true; }
   loadPacientes();
 }
@@ -683,6 +697,7 @@ function cerrarSeguro(mb){
 
 // ================== EQUIPO DEL PACIENTE + INFORMES (B2) ==================
 let equipoPacId = null, vinculos = [], informes = [], infProfId = null, infEditId = null;
+let OWNER_ID = null, infAdjuntos = [];
 
 function fmtFecha(f){ if(!f) return ""; const p=f.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
 function hoyISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
@@ -756,7 +771,12 @@ async function confirmarVincular(){
   const pid = $("vincSelect").value;
   if(!pid){ $("vincMsg").textContent = "Elegí un profesional (o cargalo en «Profesionales»)."; return; }
   const res = await sb.from("paciente_profesional").insert({ paciente_id: equipoPacId, profesional_id: pid });
-  if(res.error){ $("vincMsg").textContent = "No se pudo vincular."; return; }
+  if(res.error){
+    $("vincMsg").textContent = res.error.code === "23505"
+      ? "Ese profesional ya está vinculado a este paciente."
+      : "No se pudo vincular.";
+    return;
+  }
   $("vincModalBg").classList.add("hidden");
   loadEquipo(equipoPacId);
 }
@@ -766,6 +786,11 @@ function desvincular(vincId){
     "Desvincular", "Cancelar");
 }
 
+function setAdjVisible(on){
+  $("adjSec").classList.toggle("hidden", !on);
+  if(!on){ infAdjuntos = []; $("adjList").innerHTML = ""; }
+}
+
 function abrirInforme(profId, infId){
   infProfId = profId; infEditId = infId || null;
   const i = infId ? informes.find(x=>x.id===infId) : null;
@@ -773,29 +798,99 @@ function abrirInforme(profId, infId){
   $("if_fecha").value = i ? (i.fecha||"") : hoyISO();
   $("if_texto").value = i ? (i.texto||"") : "";
   $("btnDelInf").classList.toggle("hidden", !i);
-  $("infMsg").textContent = "";
+  $("infMsg").className = "msg err"; $("infMsg").textContent = "";
+  $("adjMsg").textContent = ""; $("adjFile").value = "";
+  setAdjVisible(!!i);            // adjuntar solo cuando el informe ya existe
+  if(i) loadAdjuntos(i.id);
   $("infModalBg").classList.remove("hidden");
   marcarSnap($("infModalBg"));
 }
+
 async function guardarInforme(){
   const fecha = $("if_fecha").value, texto = $("if_texto").value.trim();
-  if(!fecha){ $("infMsg").textContent = "Poné la fecha."; return; }
-  if(!texto){ $("infMsg").textContent = "Escribí el informe."; return; }
+  if(!fecha){ $("infMsg").className="msg err"; $("infMsg").textContent = "Poné la fecha."; return; }
+  if(!texto){ $("infMsg").className="msg err"; $("infMsg").textContent = "Escribí el informe."; return; }
   const payload = { paciente_id: equipoPacId, profesional_id: infProfId, fecha, texto };
   const btn = $("btnSaveInf"); btn.disabled = true; btn.textContent = "Guardando...";
-  const res = infEditId
-    ? await sb.from("informes").update(payload).eq("id",infEditId)
-    : await sb.from("informes").insert(payload);
+  let res;
+  if(infEditId) res = await sb.from("informes").update(payload).eq("id",infEditId);
+  else res = await sb.from("informes").insert(payload).select().single();
   btn.disabled = false; btn.textContent = "Guardar";
-  if(res.error){ $("infMsg").textContent = "No se pudo guardar."; return; }
-  $("infModalBg").classList.add("hidden");
-  loadEquipo(equipoPacId);
+  if(res.error){ $("infMsg").className="msg err"; $("infMsg").textContent = "No se pudo guardar."; return; }
+  if(!infEditId && res.data){              // era nuevo: pasa a modo edición sin cerrar
+    infEditId = res.data.id;
+    $("infTitle").textContent = "Editar informe";
+    $("btnDelInf").classList.remove("hidden");
+    setAdjVisible(true);
+    await loadAdjuntos(infEditId);
+  }
+  loadEquipo(equipoPacId);                 // refresca el historial detrás
+  marcarSnap($("infModalBg"));             // cerrar ya no avisa "cambios sin guardar"
+  $("infMsg").className = "msg ok"; $("infMsg").textContent = "Guardado ✓. Podés adjuntar archivos o cerrar.";
 }
+
 function eliminarInforme(){
   if(!infEditId) return;
-  pedirConfirm("¿Eliminar este informe?",
-    async ()=>{ await sb.from("informes").delete().eq("id",infEditId); $("infModalBg").classList.add("hidden"); loadEquipo(equipoPacId); },
+  pedirConfirm("¿Eliminar este informe? Se borran también sus archivos adjuntos.",
+    async ()=>{
+      if(infAdjuntos.length) await sb.storage.from("adjuntos").remove(infAdjuntos.map(a=>a.path));
+      await sb.from("informes").delete().eq("id",infEditId);
+      $("infModalBg").classList.add("hidden");
+      loadEquipo(equipoPacId);
+    },
     "Eliminar", "Cancelar");
+}
+
+// ---- Adjuntos de informes (Storage privado) ----
+function fmtTam(b){ if(b==null) return ""; if(b<1024) return b+" B"; if(b<1048576) return Math.round(b/1024)+" KB"; return (b/1048576).toFixed(1)+" MB"; }
+
+async function loadAdjuntos(infId){
+  const r = await sb.from("informe_adjuntos").select("*").eq("informe_id",infId).order("created_at",{ascending:true});
+  infAdjuntos = r.data || [];
+  renderAdjuntos();
+}
+function renderAdjuntos(){
+  const cont = $("adjList");
+  if(!infAdjuntos.length){ cont.innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin archivos adjuntos.</div>'; return; }
+  let html = "";
+  infAdjuntos.forEach(a=>{
+    html += '<div class="adj-item">'
+      + '<span class="adj-name">📎 '+esc(a.nombre||a.path)+'</span>'
+      + '<span class="adj-size">'+fmtTam(a.tamano)+'</span>'
+      + '<button type="button" class="adj-dl" data-dl="'+a.id+'">Descargar</button>'
+      + '<button type="button" class="adj-del" data-del="'+a.id+'" title="Borrar">✕</button>'
+      + '</div>';
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll("[data-dl]").forEach(b=>b.addEventListener("click",()=>descargarAdjunto(b.dataset.dl)));
+  cont.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarAdjunto(b.dataset.del)));
+}
+async function subirAdjuntos(files){
+  if(!files || !files.length || !infEditId) return;
+  for(const file of files){
+    $("adjMsg").style.color = "var(--muted)"; $("adjMsg").textContent = "Subiendo " + file.name + "...";
+    const safe = file.name.replace(/[^\w.\-]+/g,"_");
+    const path = OWNER_ID + "/" + infEditId + "/" + Date.now() + "_" + safe;
+    const up = await sb.storage.from("adjuntos").upload(path, file);
+    if(up.error){ $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent = "No se pudo subir " + file.name; continue; }
+    const ins = await sb.from("informe_adjuntos").insert({ informe_id: infEditId, nombre: file.name, path, mime: file.type, tamano: file.size });
+    if(ins.error){ await sb.storage.from("adjuntos").remove([path]); $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent = "No se pudo registrar " + file.name; continue; }
+  }
+  $("adjFile").value = "";
+  $("adjMsg").textContent = "";
+  loadAdjuntos(infEditId);
+}
+async function descargarAdjunto(id){
+  const a = infAdjuntos.find(x=>x.id===id); if(!a) return;
+  const r = await sb.storage.from("adjuntos").createSignedUrl(a.path, 120);
+  if(r.error || !r.data){ $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent="No se pudo abrir el archivo."; return; }
+  window.open(r.data.signedUrl, "_blank");
+}
+function borrarAdjunto(id){
+  const a = infAdjuntos.find(x=>x.id===id); if(!a) return;
+  pedirConfirm('¿Borrar el archivo "'+(a.nombre||"")+'"?',
+    async ()=>{ await sb.storage.from("adjuntos").remove([a.path]); await sb.from("informe_adjuntos").delete().eq("id",id); loadAdjuntos(infEditId); },
+    "Borrar", "Cancelar");
 }
 
 function initPacientes(){
@@ -830,6 +925,7 @@ function initPacientes(){
   $("vincCancel").addEventListener("click",()=>$("vincModalBg").classList.add("hidden"));
   $("vincModalBg").addEventListener("click",e=>{ if(e.target===$("vincModalBg")) $("vincModalBg").classList.add("hidden"); });
   $("btnSaveInf").addEventListener("click",guardarInforme);
+  $("adjFile").addEventListener("change",e=>subirAdjuntos(e.target.files));
   $("btnCancelInf").addEventListener("click",()=>cerrarSeguro($("infModalBg")));
   $("btnDelInf").addEventListener("click",eliminarInforme);
   $("infModalBg").addEventListener("click",e=>{ if(e.target===$("infModalBg")) cerrarSeguro($("infModalBg")); });
