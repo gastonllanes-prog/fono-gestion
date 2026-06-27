@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v12</title>
+<title>Fono Gestión v13</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -184,7 +184,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v12</small></div>
+    <div class="brand">Fono Gestión <small>v13</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -358,6 +358,7 @@
       <label>Archivos adjuntos (PDF, Word, Excel, fotos...)</label>
       <div id="adjList"></div>
       <input type="file" id="adjFile" multiple style="margin-top:8px;font-size:15px">
+      <input type="hidden" id="if_pend">
       <div id="adjMsg" style="font-size:13px;color:var(--muted);margin-top:6px"></div>
     </div>
     <div class="msg err" id="infMsg"></div>
@@ -697,7 +698,7 @@ function cerrarSeguro(mb){
 
 // ================== EQUIPO DEL PACIENTE + INFORMES (B2) ==================
 let equipoPacId = null, vinculos = [], informes = [], infProfId = null, infEditId = null;
-let OWNER_ID = null, infAdjuntos = [];
+let OWNER_ID = null, infAdjuntos = [], infPendientes = [];
 
 function fmtFecha(f){ if(!f) return ""; const p=f.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
 function hoyISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
@@ -786,11 +787,6 @@ function desvincular(vincId){
     "Desvincular", "Cancelar");
 }
 
-function setAdjVisible(on){
-  $("adjSec").classList.toggle("hidden", !on);
-  if(!on){ infAdjuntos = []; $("adjList").innerHTML = ""; }
-}
-
 function abrirInforme(profId, infId){
   infProfId = profId; infEditId = infId || null;
   const i = infId ? informes.find(x=>x.id===infId) : null;
@@ -800,33 +796,37 @@ function abrirInforme(profId, infId){
   $("btnDelInf").classList.toggle("hidden", !i);
   $("infMsg").className = "msg err"; $("infMsg").textContent = "";
   $("adjMsg").textContent = ""; $("adjFile").value = "";
-  setAdjVisible(!!i);            // adjuntar solo cuando el informe ya existe
-  if(i) loadAdjuntos(i.id);
+  infPendientes = []; infAdjuntos = [];
+  $("adjSec").classList.remove("hidden");     // adjuntar SIEMPRE disponible
+  renderAdjuntos();
+  if(i) loadAdjuntos(i.id);                    // trae los ya guardados
   $("infModalBg").classList.remove("hidden");
   marcarSnap($("infModalBg"));
 }
+function infErr(m){ $("infMsg").className = "msg err"; $("infMsg").textContent = m; }
 
 async function guardarInforme(){
   const fecha = $("if_fecha").value, texto = $("if_texto").value.trim();
-  if(!fecha){ $("infMsg").className="msg err"; $("infMsg").textContent = "Poné la fecha."; return; }
-  if(!texto){ $("infMsg").className="msg err"; $("infMsg").textContent = "Escribí el informe."; return; }
+  if(!fecha){ infErr("Poné la fecha."); return; }
+  if(!texto && !infPendientes.length && !infAdjuntos.length){ infErr("Escribí el informe o adjuntá un archivo."); return; }
   const payload = { paciente_id: equipoPacId, profesional_id: infProfId, fecha, texto };
   const btn = $("btnSaveInf"); btn.disabled = true; btn.textContent = "Guardando...";
-  let res;
+  let res, id = infEditId;
   if(infEditId) res = await sb.from("informes").update(payload).eq("id",infEditId);
-  else res = await sb.from("informes").insert(payload).select().single();
+  else { res = await sb.from("informes").insert(payload).select().single(); if(res.data) id = res.data.id; }
+  if(res.error || !id){ btn.disabled=false; btn.textContent="Guardar"; infErr("No se pudo guardar el informe."); return; }
+  let fallos = 0;
+  for(const file of infPendientes){ if(!(await subirUno(file, id))) fallos++; }
   btn.disabled = false; btn.textContent = "Guardar";
-  if(res.error){ $("infMsg").className="msg err"; $("infMsg").textContent = "No se pudo guardar."; return; }
-  if(!infEditId && res.data){              // era nuevo: pasa a modo edición sin cerrar
-    infEditId = res.data.id;
-    $("infTitle").textContent = "Editar informe";
-    $("btnDelInf").classList.remove("hidden");
-    setAdjVisible(true);
-    await loadAdjuntos(infEditId);
+  infPendientes = [];
+  loadEquipo(equipoPacId);
+  if(fallos){                                  // el texto quedó guardado, pero falló algún archivo: no cierro
+    infEditId = id; $("infTitle").textContent = "Editar informe"; $("btnDelInf").classList.remove("hidden");
+    await loadAdjuntos(id); marcarSnap($("infModalBg"));
+    infErr(fallos + " archivo(s) no se pudieron subir. El resto quedó guardado.");
+    return;
   }
-  loadEquipo(equipoPacId);                 // refresca el historial detrás
-  marcarSnap($("infModalBg"));             // cerrar ya no avisa "cambios sin guardar"
-  $("infMsg").className = "msg ok"; $("infMsg").textContent = "Guardado ✓. Podés adjuntar archivos o cerrar.";
+  $("infModalBg").classList.add("hidden");
 }
 
 function eliminarInforme(){
@@ -844,6 +844,12 @@ function eliminarInforme(){
 // ---- Adjuntos de informes (Storage privado) ----
 function fmtTam(b){ if(b==null) return ""; if(b<1024) return b+" B"; if(b<1048576) return Math.round(b/1024)+" KB"; return (b/1048576).toFixed(1)+" MB"; }
 
+function elegirArchivos(files){
+  for(const f of files) infPendientes.push(f);   // acumula (varios, en tandas)
+  $("adjFile").value = "";
+  renderAdjuntos();
+}
+
 async function loadAdjuntos(infId){
   const r = await sb.from("informe_adjuntos").select("*").eq("informe_id",infId).order("created_at",{ascending:true});
   infAdjuntos = r.data || [];
@@ -851,7 +857,6 @@ async function loadAdjuntos(infId){
 }
 function renderAdjuntos(){
   const cont = $("adjList");
-  if(!infAdjuntos.length){ cont.innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin archivos adjuntos.</div>'; return; }
   let html = "";
   infAdjuntos.forEach(a=>{
     html += '<div class="adj-item">'
@@ -861,29 +866,33 @@ function renderAdjuntos(){
       + '<button type="button" class="adj-del" data-del="'+a.id+'" title="Borrar">✕</button>'
       + '</div>';
   });
+  infPendientes.forEach((f,idx)=>{
+    html += '<div class="adj-item">'
+      + '<span class="adj-name">📎 '+esc(f.name)+' <span style="color:var(--ok);font-weight:700">(nuevo)</span></span>'
+      + '<span class="adj-size">'+fmtTam(f.size)+'</span>'
+      + '<button type="button" class="adj-del" data-pend="'+idx+'" title="Quitar">✕</button>'
+      + '</div>';
+  });
+  if(!html) html = '<div style="font-size:13px;color:var(--muted)">Sin archivos adjuntos.</div>';
   cont.innerHTML = html;
+  $("if_pend").value = infPendientes.map(f=>f.name).join("|");   // para detectar cambios sin guardar
   cont.querySelectorAll("[data-dl]").forEach(b=>b.addEventListener("click",()=>descargarAdjunto(b.dataset.dl)));
   cont.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarAdjunto(b.dataset.del)));
+  cont.querySelectorAll("[data-pend]").forEach(b=>b.addEventListener("click",()=>{ infPendientes.splice(parseInt(b.dataset.pend,10),1); renderAdjuntos(); }));
 }
-async function subirAdjuntos(files){
-  if(!files || !files.length || !infEditId) return;
-  for(const file of files){
-    $("adjMsg").style.color = "var(--muted)"; $("adjMsg").textContent = "Subiendo " + file.name + "...";
-    const safe = file.name.replace(/[^\w.\-]+/g,"_");
-    const path = OWNER_ID + "/" + infEditId + "/" + Date.now() + "_" + safe;
-    const up = await sb.storage.from("adjuntos").upload(path, file);
-    if(up.error){ $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent = "No se pudo subir " + file.name; continue; }
-    const ins = await sb.from("informe_adjuntos").insert({ informe_id: infEditId, nombre: file.name, path, mime: file.type, tamano: file.size });
-    if(ins.error){ await sb.storage.from("adjuntos").remove([path]); $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent = "No se pudo registrar " + file.name; continue; }
-  }
-  $("adjFile").value = "";
-  $("adjMsg").textContent = "";
-  loadAdjuntos(infEditId);
+async function subirUno(file, infId){
+  const safe = file.name.replace(/[^\w.\-]+/g,"_");
+  const path = OWNER_ID + "/" + infId + "/" + Date.now() + "_" + Math.random().toString(36).slice(2,7) + "_" + safe;
+  const up = await sb.storage.from("adjuntos").upload(path, file);
+  if(up.error) return false;
+  const ins = await sb.from("informe_adjuntos").insert({ informe_id: infId, nombre: file.name, path, mime: file.type, tamano: file.size });
+  if(ins.error){ await sb.storage.from("adjuntos").remove([path]); return false; }
+  return true;
 }
 async function descargarAdjunto(id){
   const a = infAdjuntos.find(x=>x.id===id); if(!a) return;
   const r = await sb.storage.from("adjuntos").createSignedUrl(a.path, 120);
-  if(r.error || !r.data){ $("adjMsg").style.color="var(--err)"; $("adjMsg").textContent="No se pudo abrir el archivo."; return; }
+  if(r.error || !r.data){ infErr("No se pudo abrir el archivo."); return; }
   window.open(r.data.signedUrl, "_blank");
 }
 function borrarAdjunto(id){
@@ -925,7 +934,7 @@ function initPacientes(){
   $("vincCancel").addEventListener("click",()=>$("vincModalBg").classList.add("hidden"));
   $("vincModalBg").addEventListener("click",e=>{ if(e.target===$("vincModalBg")) $("vincModalBg").classList.add("hidden"); });
   $("btnSaveInf").addEventListener("click",guardarInforme);
-  $("adjFile").addEventListener("change",e=>subirAdjuntos(e.target.files));
+  $("adjFile").addEventListener("change",e=>elegirArchivos(e.target.files));
   $("btnCancelInf").addEventListener("click",()=>cerrarSeguro($("infModalBg")));
   $("btnDelInf").addEventListener("click",eliminarInforme);
   $("infModalBg").addEventListener("click",e=>{ if(e.target===$("infModalBg")) cerrarSeguro($("infModalBg")); });
