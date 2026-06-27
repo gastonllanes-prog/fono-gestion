@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v24</title>
+<title>Fono Gestión v25</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -256,14 +256,18 @@
   .cal-cell.otro{opacity:.45}
   .cal-cell.hoy{box-shadow:0 0 0 2px var(--accent-soft);border-color:var(--accent)}
   .cal-num{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px}
-  .cal-turno{font-size:11px;padding:2px 6px;border-radius:5px;margin:2px 0;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis;background:var(--accent-soft);color:var(--accent2)}
-  .cal-turno.realizada{background:#e3f5ee;color:#2f9e78}
-  .cal-turno.cancelada_con_aviso{background:#fdeee6;color:#c47a4f}
-  .cal-turno.cancelada_mismo_dia{background:#fbe3e3;color:#c0504f}
-  .cal-turno.ausente{background:#f0eef4;color:#8a85a3}
-  .cal-turno.proy{background:transparent;border:1px dashed var(--line);color:var(--muted)}
-  @media(max-width:760px){ .cal-cell{min-height:74px} .cal-turno{font-size:10px} }
+  .cal-turno{font-size:13px;font-weight:600;padding:5px 9px;border-radius:6px;margin:4px 0;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;color:var(--txt);border-left:4px solid var(--accent)}
+  .cal-turno .ch{font-weight:700;margin-right:4px}
+  .cal-turno.cancelada_con_aviso,.cal-turno.cancelada_mismo_dia{text-decoration:line-through;opacity:.85}
+  .cal-turno.ausente{opacity:.6}
+  .cal-turno.proy{font-weight:500}
+  @media(max-width:760px){ .cal-cell{min-height:74px} .cal-turno{font-size:11px} }
+  /* selector de color del paciente */
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+  .swatch.sel{box-shadow:0 0 0 2px var(--txt)}
+  .lectura .swatch{pointer-events:none}
   /* ---- Configuración ---- */
   .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;align-items:start}
   .cfg-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--input-bg);
@@ -311,7 +315,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v24</small></div>
+    <div class="brand">Fono Gestión <small>v25</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -440,6 +444,9 @@
               <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
             </div>
             <label>Dirección</label><input id="f_direccion">
+            <label>Color en la agenda</label>
+            <div id="f_colorSwatches" class="swatches"></div>
+            <input type="hidden" id="f_color">
           </div>
           <div class="fieldset">
             <div class="eyebrow">Cobertura</div>
@@ -638,10 +645,9 @@
         </select>
       </div>
     </div>
-    <div class="row2">
-      <div><label>Hora inicio</label><input id="se_ini" type="time"></div>
-      <div><label>Hora fin</label><input id="se_fin" type="time"></div>
-    </div>
+    <label>Hora de inicio <span style="color:var(--muted2);font-weight:400">(la sesión dura 45 min)</span></label>
+    <input id="se_ini" type="time">
+    <input id="se_fin" type="time" style="display:none">
     <div id="se_nota_wrap">
       <label>Nota clínica de la sesión</label>
       <textarea id="se_nota" style="min-height:90px" placeholder="Qué se trabajó en la sesión..."></textarea>
@@ -670,10 +676,9 @@
       <option value="6">Sábado</option>
       <option value="7">Domingo</option>
     </select>
-    <div class="row2">
-      <div><label>Hora inicio</label><input id="tu_ini" type="time"></div>
-      <div><label>Hora fin</label><input id="tu_fin" type="time"></div>
-    </div>
+    <label>Hora de inicio <span style="color:var(--muted2);font-weight:400">(45 min)</span></label>
+    <input id="tu_ini" type="time">
+    <input id="tu_fin" type="time" style="display:none">
     <div class="msg err" id="turnoMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnDelTurno">Eliminar</button>
@@ -769,6 +774,19 @@ function edad(f){ if(!f) return null; const d=new Date(f), h=new Date();
   let e=h.getFullYear()-d.getFullYear(); const m=h.getMonth()-d.getMonth();
   if(m<0||(m===0&&h.getDate()<d.getDate())) e--; return e; }
 function nombreOS(id){ const o=obras.find(x=>x.id===id); return o?o.nombre:""; }
+const PALETA = ["#127E76","#2D6BB5","#B5790F","#C0563B","#7A5AC2","#2E9E5B","#C2407A","#5C6679"];
+function renderSwatches(sel){
+  $("f_color").value = sel||"";
+  $("f_colorSwatches").innerHTML = PALETA.map(c=>'<button type="button" class="swatch'+(c===sel?' sel':'')+'" data-c="'+c+'" style="background:'+c+'" aria-label="color"></button>').join("");
+  $("f_colorSwatches").querySelectorAll(".swatch").forEach(b=>b.addEventListener("click",()=>renderSwatches(b.dataset.c)));
+}
+function mas45(t){
+  if(!t) return null;
+  const p=t.split(":"); let m=parseInt(p[0],10)*60+parseInt(p[1],10)+45;
+  m=((m%1440)+1440)%1440;
+  return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+}
+function pacColor(id){ const p=pacientes.find(x=>x.id===id); return (p&&p.color)?p.color:"#94A3B8"; }
 
 async function loadPacientes(){
   const [rp, ro, rt] = await Promise.all([
@@ -868,6 +886,7 @@ function rellenarPac(p){
   $("f_grado").value      = p ? (p.grado||"") : "";
   $("f_integradora").value= p ? (p.integradora||"") : "";
   $("f_estado").value     = p ? (p.estado||"activo") : "activo";
+  renderSwatches(p ? (p.color||"") : PALETA[0]);
   toggleOS();
 }
 function headerPac(p){
@@ -963,6 +982,7 @@ async function guardarPac(){
     institucion_educativa: $("f_institucion").value.trim() || null,
     grado:         $("f_grado").value.trim() || null,
     integradora:   $("f_integradora").value.trim() || null,
+    color:         $("f_color").value || null,
     estado: pacEditId ? $("f_estado").value : "activo"
   };
   const btn = $("btnGuardarPac"); btn.disabled = true; btn.textContent = "Guardando...";
@@ -1271,7 +1291,7 @@ async function loadAgenda(){
   const first = new Date(calYear, calMonth, 1);
   const last  = new Date(calYear, calMonth+1, 0);
   const [rp, rt, rs] = await Promise.all([
-    sb.from("pacientes").select("id,nombre,apellido,estado").order("apellido",{ascending:true}),
+    sb.from("pacientes").select("id,nombre,apellido,estado,color").order("apellido",{ascending:true}),
     sb.from("turnos_recurrentes").select("*").eq("activo",true),
     sb.from("sesiones").select("*").gte("fecha",ymd(first)).lte("fecha",ymd(last))
   ]);
@@ -1300,16 +1320,17 @@ function renderAgenda(){
         && (!t.vigencia_desde || t.vigencia_desde<=ds)
         && !conSesion.includes(t.id));
     const items = [];
-    ses.forEach(s=> items.push({ tipo:"ses", id:s.id, hora:hhmm(s.hora_inicio), txt:pacNom(s.paciente_id), estado:s.estado }));
-    proy.forEach(t=> items.push({ tipo:"proy", id:t.id, fecha:ds, hora:hhmm(t.hora_inicio), txt:pacNom(t.paciente_id) }));
+    ses.forEach(s=> items.push({ tipo:"ses", id:s.id, hora:hhmm(s.hora_inicio), txt:pacNom(s.paciente_id), estado:s.estado, color:pacColor(s.paciente_id) }));
+    proy.forEach(t=> items.push({ tipo:"proy", id:t.id, fecha:ds, hora:hhmm(t.hora_inicio), txt:pacNom(t.paciente_id), color:pacColor(t.paciente_id) }));
     items.sort((a,b)=> (a.hora||"").localeCompare(b.hora||""));
     let inner = '<div class="cal-num">'+d.getDate()+'</div>';
-    items.slice(0,4).forEach(it=>{
+    items.slice(0,5).forEach(it=>{
       const cls = it.tipo==="proy" ? "proy" : it.estado;
       const attr = it.tipo==="ses" ? ('data-ses="'+it.id+'"') : ('data-proy="'+it.id+'" data-fecha="'+it.fecha+'"');
-      inner += '<div class="cal-turno '+cls+'" '+attr+'>'+(it.hora?it.hora+" ":"")+esc(it.txt)+'</div>';
+      const sty = 'border-left-color:'+it.color+';background:'+it.color+'22';
+      inner += '<div class="cal-turno '+cls+'" style="'+sty+'" '+attr+'><span class="ch">'+(it.hora||"")+'</span>'+esc(it.txt)+'</div>';
     });
-    if(items.length>4) inner += '<div style="font-size:10px;color:var(--muted)">+'+(items.length-4)+' más</div>';
+    if(items.length>5) inner += '<div style="font-size:11px;color:var(--muted)">+'+(items.length-5)+' más</div>';
     html += '<div class="cal-cell'+otro+hoy+'" data-day="'+ds+'">'+inner+'</div>';
   }
   $("calGrid").innerHTML = html;
@@ -1386,9 +1407,9 @@ async function guardarSesion(){
   if(perm){
     const ini=$("se_ini").value;
     if(!ini){ btn.disabled=false; btn.textContent="Guardar"; $("sesMsg").textContent="Para un turno fijo poné la hora de inicio."; return; }
-    res = await sb.from("turnos_recurrentes").insert({ paciente_id:pac, dia_semana:diaDe(fecha), hora_inicio:ini, hora_fin:$("se_fin").value||null, vigencia_desde:fecha });
+    res = await sb.from("turnos_recurrentes").insert({ paciente_id:pac, dia_semana:diaDe(fecha), hora_inicio:ini, hora_fin:mas45(ini), vigencia_desde:fecha });
   } else {
-    const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:$("se_fin").value||null,
+    const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:mas45($("se_ini").value),
       estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
     res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload);
   }
@@ -1453,9 +1474,9 @@ function abrirTurno(id){
   marcarSnap($("turnoModalBg"));
 }
 async function guardarTurno(){
-  const dia = parseInt($("tu_dia").value,10), ini = $("tu_ini").value, fin = $("tu_fin").value;
+  const dia = parseInt($("tu_dia").value,10), ini = $("tu_ini").value;
   if(!ini){ $("turnoMsg").textContent = "Poné la hora de inicio."; return; }
-  const payload = { paciente_id: equipoPacId, dia_semana: dia, hora_inicio: ini, hora_fin: fin || null };
+  const payload = { paciente_id: equipoPacId, dia_semana: dia, hora_inicio: ini, hora_fin: mas45(ini) };
   const res = turnoEditId
     ? await sb.from("turnos_recurrentes").update(payload).eq("id",turnoEditId)
     : await sb.from("turnos_recurrentes").insert(payload);
