@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v9</title>
+<title>Fono Gestión v10</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -125,6 +125,24 @@
   .modal.wide .modal-actions{justify-content:flex-end}
   .modal.wide .modal-actions .btn-primary{flex:0 0 auto;padding-left:30px;padding-right:30px}
   .modal.wide .modal-actions .btn-danger{margin-right:auto}
+  /* ---- Equipo profesional + informes (en la ficha) ---- */
+  #equipoSec, #equipoAviso{break-inside:auto;width:100%}
+  .equipo-prof{border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:10px;background:var(--card)}
+  .ep-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .ep-esp{font-weight:700;color:var(--accent2);font-size:13px}
+  .ep-nom{font-size:13px}
+  .ep-tel{font-size:12px;color:var(--muted);margin-left:6px}
+  .ep-x{background:transparent;color:var(--muted);font-size:15px;padding:2px 7px;border-radius:6px}
+  .ep-x:hover{background:#fdecec;color:var(--err)}
+  .ep-informes{margin:8px 0}
+  .informe-item{border-left:3px solid var(--menta);padding:6px 10px;margin:6px 0;background:var(--input-bg);
+    border-radius:0 8px 8px 0;cursor:pointer}
+  .informe-item:hover{background:var(--accent-soft)}
+  .inf-fecha{font-size:11px;color:var(--accent2);font-weight:700}
+  .inf-texto{font-size:13px;white-space:pre-wrap}
+  .btn-mini{background:var(--accent-soft);color:var(--accent2);font-size:12px;padding:5px 11px;
+    border-radius:8px;font-weight:600}
+  .btn-mini:hover{background:#e2d9f7}
   .row2{display:flex;gap:10px;flex-wrap:wrap} .row2>div{flex:1;min-width:120px}
   .modal-actions{display:flex;gap:10px;margin-top:22px}
   .modal-actions .btn-primary{flex:1}
@@ -151,7 +169,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v9</small></div>
+    <div class="brand">Fono Gestión <small>v10</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -255,16 +273,19 @@
         </select>
       </div>
 
-      <div class="ficha-card hidden" id="equipoSec">
-        <div class="modal-sec first">Equipo profesional e informes</div>
-        <div class="aviso" style="margin-top:0">🔧 Acá vas a vincular profesionales del catálogo y cargar informes con fecha (próximo paso). Por ahora cargalos en la pantalla «Profesionales».</div>
-      </div>
-      <div class="ficha-card hidden" id="equipoAviso">
-        <div class="modal-sec first">Equipo profesional</div>
-        <div class="aviso" style="margin-top:0">💡 Guardá el paciente primero. Después vas a poder vincular su equipo.</div>
-      </div>
-
     </div>
+
+    <div class="ficha-card hidden" id="equipoAviso">
+      <div class="modal-sec first">Equipo profesional</div>
+      <div class="aviso" style="margin-top:0">💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.</div>
+    </div>
+
+    <div class="ficha-card hidden" id="equipoSec">
+      <div class="modal-sec first">Equipo profesional e informes</div>
+      <div id="equipoList"></div>
+      <button type="button" class="btn-ghost" id="btnVincularProf" style="margin-top:10px">+ Vincular profesional</button>
+    </div>
+
     <div class="msg err" id="pacModalMsg"></div>
     <div class="modal-actions">
       <button class="btn-danger hidden" id="btnEliminarPac">Eliminar</button>
@@ -291,6 +312,38 @@
       <button class="btn-danger hidden" id="btnDelProf">Eliminar</button>
       <button class="btn-ghost" id="btnCancelProf">Cancelar</button>
       <button class="btn-primary" id="btnSaveProf">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Vincular profesional ===== -->
+<div class="modal-bg hidden" id="vincModalBg" style="z-index:70">
+  <div class="modal" style="max-width:440px">
+    <h3>Vincular profesional</h3>
+    <label>Elegí del catálogo</label>
+    <select id="vincSelect"></select>
+    <div class="msg err" id="vincMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="vincCancel">Cancelar</button>
+      <button class="btn-primary" id="vincConfirm">Vincular</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px">¿No está en la lista? Cargalo primero en la pantalla «Profesionales».</p>
+  </div>
+</div>
+
+<!-- ===== Modal Informe ===== -->
+<div class="modal-bg hidden" id="infModalBg" style="z-index:70">
+  <div class="modal" style="max-width:460px">
+    <h3 id="infTitle">Nuevo informe</h3>
+    <label>Fecha</label>
+    <input id="if_fecha" type="date">
+    <label>Informe / observación</label>
+    <textarea id="if_texto" style="min-height:120px" placeholder="Ej: está trabajando las vocales..."></textarea>
+    <div class="msg err" id="infMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-danger hidden" id="btnDelInf">Eliminar</button>
+      <button class="btn-ghost" id="btnCancelInf">Cancelar</button>
+      <button class="btn-primary" id="btnSaveInf">Guardar</button>
     </div>
   </div>
 </div>
@@ -435,9 +488,10 @@ function abrirModalPac(id){
   toggleOS();
   $("f_estado_wrap").classList.toggle("hidden", !p);   // estado solo al editar
   $("btnEliminarPac").classList.toggle("hidden", !p);
-  // Equipo profesional: la sección se activa solo en edición (la vinculación llega en B2)
+  // Equipo profesional: la sección se activa solo en edición (necesita el paciente guardado)
   $("equipoSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
+  if(p) loadEquipo(p.id); else { equipoPacId = null; vinculos = []; informes = []; }
   $("pacModalMsg").textContent = "";
   $("pacModalBg").classList.remove("hidden");
   marcarSnap($("pacModalBg"));
@@ -600,8 +654,10 @@ function switchView(v){
 function snapModal(mb){ return Array.from(mb.querySelectorAll("input,select,textarea")).map(e=>e.value).join(""); }
 function marcarSnap(mb){ mb._snap = snapModal(mb); }
 let _confirmYes = null;
-function pedirConfirm(msg, onYes){
+function pedirConfirm(msg, onYes, yesLabel, noLabel){
   $("confirmMsg").textContent = msg;
+  $("confirmYes").textContent = yesLabel || "Descartar cambios";
+  $("confirmNo").textContent  = noLabel  || "Seguir editando";
   _confirmYes = onYes;
   $("confirmBg").classList.remove("hidden");
 }
@@ -615,6 +671,123 @@ function cerrarSeguro(mb){
     return;
   }
   mb.classList.add("hidden");
+}
+
+// ================== EQUIPO DEL PACIENTE + INFORMES (B2) ==================
+let equipoPacId = null, vinculos = [], informes = [], infProfId = null, infEditId = null;
+
+function fmtFecha(f){ if(!f) return ""; const p=f.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+function hoyISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+async function loadEquipo(pacId){
+  equipoPacId = pacId;
+  const [rv, ri, rc] = await Promise.all([
+    sb.from("paciente_profesional").select("id, profesional_id, profesionales(*)").eq("paciente_id",pacId),
+    sb.from("informes").select("*").eq("paciente_id",pacId).order("fecha",{ascending:false}),
+    sb.from("profesionales").select("*").order("apellido",{ascending:true})
+  ]);
+  vinculos = rv.data || [];
+  informes = ri.data || [];
+  profCatalogo = rc.data || profCatalogo;
+  renderEquipo();
+}
+
+function renderEquipo(){
+  const cont = $("equipoList");
+  if(!vinculos.length){
+    cont.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:2px 0 6px">Todavía no vinculaste profesionales a este paciente.</div>';
+    return;
+  }
+  let html = "";
+  vinculos.forEach(v=>{
+    const p = v.profesionales || {};
+    const nom = esc(((p.nombre||"")+" "+(p.apellido||"")).trim());
+    const infs = informes.filter(i=>i.profesional_id===v.profesional_id);
+    let infHtml = "";
+    if(!infs.length){
+      infHtml = '<div style="font-size:12px;color:var(--muted)">Sin informes todavía.</div>';
+    } else {
+      infs.forEach(i=>{
+        infHtml += '<div class="informe-item" data-inf="'+i.id+'">'
+          + '<div class="inf-fecha">'+fmtFecha(i.fecha)+'</div>'
+          + '<div class="inf-texto">'+esc(i.texto||"")+'</div></div>';
+      });
+    }
+    html += '<div class="equipo-prof">'
+      + '<div class="ep-head"><div><span class="ep-esp">'+(esc(p.especialidad)||"Profesional")+'</span>'
+      + (nom?' <span class="ep-nom">'+nom+'</span>':'')
+      + (p.telefono?'<span class="ep-tel">📞 '+esc(p.telefono)+'</span>':'')+'</div>'
+      + '<button type="button" class="ep-x" data-desv="'+v.id+'" title="Desvincular">✕</button></div>'
+      + '<div class="ep-informes">'+infHtml+'</div>'
+      + '<button type="button" class="btn-mini" data-addinf="'+v.profesional_id+'">+ Informe</button>'
+      + '</div>';
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll("[data-desv]").forEach(b=>b.addEventListener("click",()=>desvincular(b.dataset.desv)));
+  cont.querySelectorAll("[data-addinf]").forEach(b=>b.addEventListener("click",()=>abrirInforme(b.dataset.addinf,null)));
+  cont.querySelectorAll(".informe-item").forEach(el=>el.addEventListener("click",()=>{
+    const i = informes.find(x=>x.id===el.dataset.inf);
+    if(i) abrirInforme(i.profesional_id, i.id);
+  }));
+}
+
+function abrirVincular(){
+  const yaIds = vinculos.map(v=>v.profesional_id);
+  const disp = profCatalogo.filter(p=>!yaIds.includes(p.id));
+  const sel = $("vincSelect");
+  if(!disp.length){
+    sel.innerHTML = '<option value="">(no hay profesionales disponibles)</option>';
+  } else {
+    sel.innerHTML = disp.map(p=>'<option value="'+p.id+'">'
+      + esc(((p.especialidad||"Profesional")+" — "+(p.nombre||"")+" "+(p.apellido||"")).trim()) + '</option>').join("");
+  }
+  $("vincMsg").textContent = "";
+  $("vincModalBg").classList.remove("hidden");
+}
+async function confirmarVincular(){
+  const pid = $("vincSelect").value;
+  if(!pid){ $("vincMsg").textContent = "Elegí un profesional (o cargalo en «Profesionales»)."; return; }
+  const res = await sb.from("paciente_profesional").insert({ paciente_id: equipoPacId, profesional_id: pid });
+  if(res.error){ $("vincMsg").textContent = "No se pudo vincular."; return; }
+  $("vincModalBg").classList.add("hidden");
+  loadEquipo(equipoPacId);
+}
+function desvincular(vincId){
+  pedirConfirm("¿Desvincular este profesional del paciente? No borra al profesional del catálogo ni sus informes.",
+    async ()=>{ await sb.from("paciente_profesional").delete().eq("id",vincId); loadEquipo(equipoPacId); },
+    "Desvincular", "Cancelar");
+}
+
+function abrirInforme(profId, infId){
+  infProfId = profId; infEditId = infId || null;
+  const i = infId ? informes.find(x=>x.id===infId) : null;
+  $("infTitle").textContent = i ? "Editar informe" : "Nuevo informe";
+  $("if_fecha").value = i ? (i.fecha||"") : hoyISO();
+  $("if_texto").value = i ? (i.texto||"") : "";
+  $("btnDelInf").classList.toggle("hidden", !i);
+  $("infMsg").textContent = "";
+  $("infModalBg").classList.remove("hidden");
+  marcarSnap($("infModalBg"));
+}
+async function guardarInforme(){
+  const fecha = $("if_fecha").value, texto = $("if_texto").value.trim();
+  if(!fecha){ $("infMsg").textContent = "Poné la fecha."; return; }
+  if(!texto){ $("infMsg").textContent = "Escribí el informe."; return; }
+  const payload = { paciente_id: equipoPacId, profesional_id: infProfId, fecha, texto };
+  const btn = $("btnSaveInf"); btn.disabled = true; btn.textContent = "Guardando...";
+  const res = infEditId
+    ? await sb.from("informes").update(payload).eq("id",infEditId)
+    : await sb.from("informes").insert(payload);
+  btn.disabled = false; btn.textContent = "Guardar";
+  if(res.error){ $("infMsg").textContent = "No se pudo guardar."; return; }
+  $("infModalBg").classList.add("hidden");
+  loadEquipo(equipoPacId);
+}
+function eliminarInforme(){
+  if(!infEditId) return;
+  pedirConfirm("¿Eliminar este informe?",
+    async ()=>{ await sb.from("informes").delete().eq("id",infEditId); $("infModalBg").classList.add("hidden"); loadEquipo(equipoPacId); },
+    "Eliminar", "Cancelar");
 }
 
 function initPacientes(){
@@ -644,6 +817,14 @@ function initPacientes(){
   $("confirmYes").addEventListener("click",()=>{ const f=_confirmYes; cerrarConfirm(); if(f) f(); });
   $("confirmNo").addEventListener("click",cerrarConfirm);
   $("confirmBg").addEventListener("click",e=>{ if(e.target===$("confirmBg")) cerrarConfirm(); });
+  $("btnVincularProf").addEventListener("click",abrirVincular);
+  $("vincConfirm").addEventListener("click",confirmarVincular);
+  $("vincCancel").addEventListener("click",()=>$("vincModalBg").classList.add("hidden"));
+  $("vincModalBg").addEventListener("click",e=>{ if(e.target===$("vincModalBg")) $("vincModalBg").classList.add("hidden"); });
+  $("btnSaveInf").addEventListener("click",guardarInforme);
+  $("btnCancelInf").addEventListener("click",()=>cerrarSeguro($("infModalBg")));
+  $("btnDelInf").addEventListener("click",eliminarInforme);
+  $("infModalBg").addEventListener("click",e=>{ if(e.target===$("infModalBg")) cerrarSeguro($("infModalBg")); });
 }
 
 $("loginForm").addEventListener("submit", async (e) => {
