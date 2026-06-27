@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v6</title>
+<title>Fono Gestión v7</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -112,7 +112,7 @@
   .aviso{font-size:12px;color:var(--muted);margin-top:16px;background:var(--accent-soft);
     padding:10px 12px;border-radius:10px}
   /* ---- Ficha ancha en tarjetas ---- */
-  .modal.wide{max-width:940px}
+  .modal.wide{max-width:1150px}
   .modal.wide h3{font-size:23px;margin-bottom:4px}
   .modal.wide label{font-size:12.5px;color:var(--muted)}
   .modal.wide input,.modal.wide select,.modal.wide textarea{font-size:15px;padding:12px}
@@ -151,7 +151,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v6</small></div>
+    <div class="brand">Fono Gestión <small>v7</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -428,6 +428,7 @@ function abrirModalPac(id){
   $("equipoAviso").classList.toggle("hidden", !!p);
   $("pacModalMsg").textContent = "";
   $("pacModalBg").classList.remove("hidden");
+  marcarSnap($("pacModalBg"));
 }
 function cerrarModalPac(){ $("pacModalBg").classList.add("hidden"); }
 
@@ -544,6 +545,7 @@ function abrirModalProf(id){
   $("btnDelProf").classList.toggle("hidden", !p);
   $("profModalMsg").textContent = "";
   $("profModalBg").classList.remove("hidden");
+  marcarSnap($("profModalBg"));
 }
 function cerrarModalProf(){ $("profModalBg").classList.add("hidden"); }
 
@@ -582,23 +584,41 @@ function switchView(v){
   if(v==="profesionales") loadProfCatalogo();
 }
 
+// ================== CIERRE DE MODALES (Escape + aviso de cambios) ==================
+function snapModal(mb){ return Array.from(mb.querySelectorAll("input,select,textarea")).map(e=>e.value).join(""); }
+function marcarSnap(mb){ mb._snap = snapModal(mb); }
+function cerrarSeguro(mb){
+  if(mb.classList.contains("hidden")) return;
+  if(mb._snap !== undefined && snapModal(mb) !== mb._snap){
+    if(!confirm("Hay cambios sin guardar. ¿Cerrar y descartarlos?")) return;
+  }
+  mb.classList.add("hidden");
+}
+
 function initPacientes(){
   fillEspList();
   document.querySelectorAll(".nav-item").forEach(b=>
     b.addEventListener("click",()=>switchView(b.dataset.view)));
+  // Escape cierra el modal abierto (el de más arriba si hay varios)
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){
+      const ab = [...document.querySelectorAll(".modal-bg")].reverse().find(m=>!m.classList.contains("hidden"));
+      if(ab) cerrarSeguro(ab);
+    }
+  });
   $("btnNuevoPac").addEventListener("click",()=>abrirModalPac(null));
-  $("btnCancelarPac").addEventListener("click",cerrarModalPac);
+  $("btnCancelarPac").addEventListener("click",()=>cerrarSeguro($("pacModalBg")));
   $("btnGuardarPac").addEventListener("click",guardarPac);
   $("btnEliminarPac").addEventListener("click",eliminarPac);
   $("f_cobertura").addEventListener("change",toggleOS);
   $("pacSearch").addEventListener("input",renderPacientes);
-  $("pacModalBg").addEventListener("click",e=>{ if(e.target===$("pacModalBg")) cerrarModalPac(); });
+  $("pacModalBg").addEventListener("click",e=>{ if(e.target===$("pacModalBg")) cerrarSeguro($("pacModalBg")); });
   $("btnNuevoProf").addEventListener("click",()=>abrirModalProf(null));
   $("profSearch").addEventListener("input",renderProfCatalogo);
   $("btnSaveProf").addEventListener("click",guardarProf);
-  $("btnCancelProf").addEventListener("click",cerrarModalProf);
+  $("btnCancelProf").addEventListener("click",()=>cerrarSeguro($("profModalBg")));
   $("btnDelProf").addEventListener("click",eliminarProf);
-  $("profModalBg").addEventListener("click",e=>{ if(e.target===$("profModalBg")) cerrarModalProf(); });
+  $("profModalBg").addEventListener("click",e=>{ if(e.target===$("profModalBg")) cerrarSeguro($("profModalBg")); });
 }
 
 $("loginForm").addEventListener("submit", async (e) => {
