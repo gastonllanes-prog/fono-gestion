@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v22</title>
+<title>Fono Gestión v23</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,6 +136,48 @@
   .pac-foto-av{width:88px;height:88px;border-radius:50%;flex:0 0 88px;display:flex;align-items:center;
     justify-content:center;font-weight:700;font-size:32px;color:#fff;overflow:hidden}
   .pac-foto-av img{width:100%;height:100%;object-fit:cover}
+  /* ===== Vista detalle de paciente (página completa con tabs) ===== */
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600;font-size:14px;margin-bottom:18px;background:none}
+  .back:hover{color:var(--accent2)} .back i{font-size:18px}
+  .dhead{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;
+    display:flex;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+  .dhead .pac-foto-av{width:84px;height:84px;flex:0 0 84px;font-size:30px}
+  .dhead .who{flex:1;min-width:220px}
+  .dhead .who h3{font-size:23px;font-weight:700;letter-spacing:-.02em}
+  .dhead .who .sub{color:var(--muted2);font-size:13.5px;margin-top:3px}
+  .dmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .dactions{display:flex;gap:8px;flex-wrap:wrap}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
+  .tab{padding:12px 18px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;background:none}
+  .tab:hover{color:var(--txt)}
+  .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+  .panel{display:none} .panel.show{display:block}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+  .fieldset{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:14px}
+  .fieldset label{display:block;font-size:12px;color:var(--muted2);font-weight:600;margin:14px 0 4px}
+  .fieldset input,.fieldset select,.fieldset textarea{width:100%;padding:10px 12px;border:1px solid var(--line-strong);
+    border-radius:10px;background:var(--card);color:var(--txt);font-size:14px;font-family:inherit}
+  .fieldset textarea{min-height:64px;resize:vertical}
+  .fieldset input:focus,.fieldset select:focus,.fieldset textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  #pacForm.lectura input,#pacForm.lectura select,#pacForm.lectura textarea{border-color:transparent;background:transparent;
+    padding-left:0;font-weight:500;appearance:none;-webkit-appearance:none;pointer-events:none}
+  #pacForm.lectura textarea{resize:none}
+  .prof{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .prof .ph{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .prof .ph .role{font-family:var(--ff-display);font-weight:700;color:var(--accent2);font-size:14px}
+  .timeline{position:relative;padding-left:20px;margin-left:6px;border-left:2px solid var(--line)}
+  .tl-item{position:relative;padding-bottom:18px}
+  .tl-item:last-child{padding-bottom:0}
+  .tl-item::before{content:"";position:absolute;left:-27px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--card)}
+  .tl-item .date{font-size:12px;font-weight:700;color:var(--accent2);font-family:var(--ff-display)}
+  .tl-item .txt{font-size:13.5px;color:var(--txt);margin-top:3px;white-space:pre-line}
+  .fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .fcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .fcard .k{font-size:12px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .fcard .v{font-family:var(--ff-display);font-size:22px;font-weight:700;margin-top:6px}
+  .fcard.alert{border-color:var(--warn);background:var(--warn-bg)} .fcard.alert .v{color:var(--warn)}
+  .note{font-size:12.5px;color:var(--muted2);margin-top:14px}
 
   /* ---- Modal ---- */
   .modal-bg{position:fixed;inset:0;background:rgba(63,58,82,.45);display:flex;align-items:flex-start;
@@ -269,7 +311,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v22</small></div>
+    <div class="brand">Fono Gestión <small>v23</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -350,114 +392,140 @@
       <div class="grid" id="profCards"></div>
       <div class="empty hidden" id="profEmpty"></div>
     </section>
+
+    <!-- ===== Vista Detalle de paciente (página completa con tabs) ===== -->
+    <section class="view" id="view-pac-detalle">
+      <button class="back" id="pacBack"><i class="ti ti-arrow-left"></i> Volver a pacientes</button>
+
+      <div class="dhead">
+        <div class="pac-foto-av" id="pacFotoAv"></div>
+        <div class="who">
+          <h3 id="dh-nombre">Nuevo paciente</h3>
+          <div class="sub" id="dh-sub"></div>
+          <div class="dmeta" id="dh-meta"></div>
+          <div style="margin-top:12px">
+            <button type="button" class="btn-ghost" id="btnFoto"><i class="ti ti-camera"></i> Subir / cambiar foto</button>
+            <button type="button" class="btn-ghost hidden" id="btnFotoDel">Quitar</button>
+            <input type="file" id="pacFotoFile" accept="image/*" style="display:none">
+            <span id="pacFotoMsg" style="font-size:13px;color:var(--muted);margin-left:8px"></span>
+          </div>
+        </div>
+        <div class="dactions">
+          <button class="btn-ghost" id="btnEditarPac"><i class="ti ti-edit"></i> Editar</button>
+          <button class="btn-ghost hidden" id="btnCancelarPac">Cancelar</button>
+          <button class="btn-primary hidden" id="btnGuardarPac">Guardar</button>
+          <button class="btn-danger hidden" id="btnEliminarPac">Eliminar</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="pacTabs">
+        <button class="tab active" data-pt="datos">Datos</button>
+        <button class="tab" data-pt="agenda">Agenda</button>
+        <button class="tab" data-pt="equipo">Equipo e informes</button>
+        <button class="tab" data-pt="historia">Historia clínica</button>
+        <button class="tab" data-pt="factu">Facturación</button>
+      </div>
+
+      <!-- Tab Datos -->
+      <div class="panel show" data-ptp="datos">
+        <div id="pacForm" class="cols lectura">
+          <div class="fieldset">
+            <div class="eyebrow">Datos personales</div>
+            <div class="row2">
+              <div><label>Nombre</label><input id="f_nombre"></div>
+              <div><label>Apellido</label><input id="f_apellido"></div>
+            </div>
+            <div class="row2">
+              <div><label>DNI</label><input id="f_dni" inputmode="numeric"></div>
+              <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
+            </div>
+            <label>Dirección</label><input id="f_direccion">
+          </div>
+          <div class="fieldset">
+            <div class="eyebrow">Cobertura</div>
+            <label>Tipo</label>
+            <select id="f_cobertura"><option value="particular">Particular</option><option value="obra_social">Obra social</option></select>
+            <div id="f_os_wrap" class="hidden">
+              <label>Obra social</label>
+              <input id="f_os" list="oslist" placeholder="Escribí o elegí...">
+              <datalist id="oslist"></datalist>
+            </div>
+          </div>
+          <div class="fieldset">
+            <div class="eyebrow">Familia y contacto</div>
+            <div class="row2">
+              <div><label>Madre</label><input id="f_madre"></div>
+              <div><label>Padre</label><input id="f_padre"></div>
+            </div>
+            <label>Hermanos</label><input id="f_hermanos" placeholder="Ej: 2 (Juan 8, Ana 5)">
+            <label>Teléfono de contacto</label><input id="f_tel" inputmode="tel">
+          </div>
+          <div class="fieldset">
+            <div class="eyebrow">Salud</div>
+            <label>Pediatra</label><input id="f_pediatra">
+            <label>¿Tiene CUD? (Certificado Único de Discapacidad)</label>
+            <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
+            <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
+            <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
+          </div>
+          <div class="fieldset">
+            <div class="eyebrow">Escolaridad</div>
+            <div class="row2">
+              <div><label>Institución educativa</label><input id="f_institucion"></div>
+              <div><label>Grado</label><input id="f_grado"></div>
+            </div>
+            <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
+          </div>
+          <div class="fieldset" id="f_estado_wrap">
+            <div class="eyebrow">Estado</div>
+            <select id="f_estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select>
+          </div>
+        </div>
+        <div class="msg err" id="pacModalMsg" style="margin-top:14px"></div>
+      </div>
+
+      <!-- Tab Agenda -->
+      <div class="panel" data-ptp="agenda">
+        <div class="fieldset" id="turnosSec">
+          <div class="eyebrow">Turnos fijos (agenda semanal)</div>
+          <div id="turnosList"></div>
+          <button type="button" class="btn-ghost" id="btnAddTurno" style="margin-top:12px">+ Agregar turno fijo</button>
+        </div>
+      </div>
+
+      <!-- Tab Equipo e informes -->
+      <div class="panel" data-ptp="equipo">
+        <div id="equipoAviso" class="aviso hidden">💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.</div>
+        <div id="equipoSec">
+          <div id="equipoList"></div>
+          <button type="button" class="btn-ghost" id="btnVincularProf" style="margin-top:12px">+ Vincular profesional</button>
+        </div>
+      </div>
+
+      <!-- Tab Historia clínica -->
+      <div class="panel" data-ptp="historia">
+        <div class="prof">
+          <div class="ph"><span class="role">Sesiones de fonoaudiología</span></div>
+          <div class="timeline" id="histTimeline"></div>
+        </div>
+      </div>
+
+      <!-- Tab Facturación -->
+      <div class="panel" data-ptp="factu">
+        <div class="fcards">
+          <div class="fcard"><div class="k">Sesiones reales (mes)</div><div class="v" id="fc-reales">—</div></div>
+          <div class="fcard"><div class="k">Facturadas a OS (mes)</div><div class="v">—</div></div>
+          <div class="fcard alert"><div class="k">Brecha real vs facturado</div><div class="v">—</div></div>
+          <div class="fcard"><div class="k">Comisión generada</div><div class="v">—</div></div>
+        </div>
+        <p class="note">La comisión se calcula sobre las sesiones reales, no sobre las facturadas. Estos números se conectan en S3 (comisión).</p>
+      </div>
+    </section>
   </div>
   </main>
 </section>
 
-<!-- ===== Modal Paciente ===== -->
-<div class="modal-bg hidden" id="pacModalBg">
-  <div class="modal wide">
-    <h3 id="pacModalTitle">Nuevo paciente</h3>
-    <div class="pac-foto-head">
-      <div class="pac-foto-av" id="pacFotoAv"></div>
-      <div>
-        <button type="button" class="btn-ghost" id="btnFoto"><i class="ti ti-camera"></i> Subir / cambiar foto</button>
-        <button type="button" class="btn-ghost hidden" id="btnFotoDel">Quitar</button>
-        <input type="file" id="pacFotoFile" accept="image/*" style="display:none">
-        <div id="pacFotoMsg" style="font-size:13px;color:var(--muted);margin-top:8px"></div>
-      </div>
-    </div>
-    <div class="ficha-grid">
-
-      <div class="ficha-card">
-        <div class="modal-sec first">Datos personales</div>
-        <div class="row2">
-          <div><label>Nombre</label><input id="f_nombre"></div>
-          <div><label>Apellido</label><input id="f_apellido"></div>
-        </div>
-        <div class="row2">
-          <div><label>DNI</label><input id="f_dni" inputmode="numeric"></div>
-          <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
-        </div>
-        <label>Dirección</label><input id="f_direccion">
-      </div>
-
-      <div class="ficha-card">
-        <div class="modal-sec first">Cobertura</div>
-        <select id="f_cobertura">
-          <option value="particular">Particular</option>
-          <option value="obra_social">Obra social</option>
-        </select>
-        <div id="f_os_wrap" class="hidden">
-          <label>Obra social</label>
-          <input id="f_os" list="oslist" placeholder="Escribí o elegí...">
-          <datalist id="oslist"></datalist>
-        </div>
-      </div>
-
-      <div class="ficha-card">
-        <div class="modal-sec first">Familia y contacto</div>
-        <div class="row2">
-          <div><label>Madre</label><input id="f_madre"></div>
-          <div><label>Padre</label><input id="f_padre"></div>
-        </div>
-        <label>Hermanos</label><input id="f_hermanos" placeholder="Ej: 2 (Juan 8, Ana 5)">
-        <label>Teléfono de contacto</label><input id="f_tel" inputmode="tel">
-      </div>
-
-      <div class="ficha-card">
-        <div class="modal-sec first">Salud</div>
-        <label>Pediatra</label><input id="f_pediatra">
-        <label>¿Tiene CUD? (Certificado Único de Discapacidad)</label>
-        <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
-        <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
-        <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
-      </div>
-
-      <div class="ficha-card">
-        <div class="modal-sec first">Escolaridad</div>
-        <div class="row2">
-          <div><label>Institución educativa</label><input id="f_institucion"></div>
-          <div><label>Grado</label><input id="f_grado"></div>
-        </div>
-        <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
-      </div>
-
-      <div class="ficha-card hidden" id="f_estado_wrap">
-        <div class="modal-sec first">Estado</div>
-        <select id="f_estado">
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
-      </div>
-
-    </div>
-
-    <div class="ficha-card hidden" id="equipoAviso">
-      <div class="modal-sec first">Equipo profesional</div>
-      <div class="aviso" style="margin-top:0">💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.</div>
-    </div>
-
-    <div class="ficha-card hidden" id="turnosSec">
-      <div class="modal-sec first">Turnos fijos (agenda semanal)</div>
-      <div id="turnosList"></div>
-      <button type="button" class="btn-ghost" id="btnAddTurno" style="margin-top:10px">+ Agregar turno fijo</button>
-    </div>
-
-    <div class="ficha-card hidden" id="equipoSec">
-      <div class="modal-sec first">Equipo profesional e informes</div>
-      <div id="equipoList"></div>
-      <button type="button" class="btn-ghost" id="btnVincularProf" style="margin-top:10px">+ Vincular profesional</button>
-    </div>
-
-    <div class="msg err" id="pacModalMsg"></div>
-    <div class="modal-actions">
-      <button class="btn-danger hidden" id="btnEliminarPac">Eliminar</button>
-      <button class="btn-ghost" id="btnCancelarPac">Cancelar</button>
-      <button class="btn-primary" id="btnGuardarPac">Guardar</button>
-    </div>
-  </div>
-</div>
+<!-- (modal de paciente migrado a la vista #view-pac-detalle, dentro del content) -->
 
 <!-- ===== Sub-modal Profesional ===== -->
 <div class="modal-bg hidden" id="profModalBg">
@@ -767,10 +835,7 @@ function renderPacientes(){
 
 function toggleOS(){ $("f_os_wrap").classList.toggle("hidden", $("f_cobertura").value!=="obra_social"); }
 
-function abrirModalPac(id){
-  pacEditId = id || null;
-  const p = id ? pacientes.find(x=>x.id===id) : null;
-  $("pacModalTitle").textContent = p ? "Editar paciente" : "Nuevo paciente";
+function rellenarPac(p){
   $("f_nombre").value     = p ? (p.nombre||"") : "";
   $("f_apellido").value   = p ? (p.apellido||"") : "";
   $("f_dni").value        = p ? (p.dni||"") : "";
@@ -791,23 +856,65 @@ function abrirModalPac(id){
   $("f_integradora").value= p ? (p.integradora||"") : "";
   $("f_estado").value     = p ? (p.estado||"activo") : "activo";
   toggleOS();
-  $("f_estado_wrap").classList.toggle("hidden", !p);   // estado solo al editar
+}
+function headerPac(p){
+  $("dh-nombre").textContent = p ? ((((p.nombre||"")+" "+(p.apellido||"")).trim())||"(sin nombre)") : "Nuevo paciente";
+  if(!p){ $("dh-sub").textContent=""; $("dh-meta").innerHTML=""; return; }
+  const e = edad(p.fecha_nacimiento);
+  $("dh-sub").textContent = (p.dni?"DNI "+p.dni:"")+((p.dni&&e!==null)?" · ":"")+(e!==null?e+" años":"");
+  const cob = p.cobertura_tipo==="obra_social"
+    ? '<span class="chip chip-os">'+(esc(nombreOS(p.obra_social_id))||"Obra social")+'</span>'
+    : '<span class="chip chip-particular">Particular</span>';
+  const est = p.estado==="inactivo"
+    ? '<span class="statepill"><span class="dot warn"></span>Inactivo</span>'
+    : '<span class="statepill"><span class="dot ok"></span>Activo</span>';
+  $("dh-meta").innerHTML = cob+est;
+}
+function setTabPac(t){
+  document.querySelectorAll("#pacTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.pt===t));
+  document.querySelectorAll("#view-pac-detalle .panel").forEach(p=>p.classList.toggle("show",p.dataset.ptp===t));
+}
+function setEditablePac(on){
+  $("pacForm").classList.toggle("lectura", !on);
+  $("btnEditarPac").classList.toggle("hidden", on || !pacEditId);
+  $("btnGuardarPac").classList.toggle("hidden", !on);
+  $("btnCancelarPac").classList.toggle("hidden", !on || !pacEditId);
+}
+
+function abrirModalPac(id){
+  pacEditId = id || null;
+  const p = id ? pacientes.find(x=>x.id===id) : null;
+  rellenarPac(p);
+  headerPac(p);
+  $("f_estado_wrap").style.display = p ? "" : "none";
   $("btnEliminarPac").classList.toggle("hidden", !p);
-  // Equipo profesional: la sección se activa solo en edición (necesita el paciente guardado)
   $("equipoSec").classList.toggle("hidden", !p);
   $("turnosSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
-  if(p){ loadEquipo(p.id); loadTurnos(p.id); }
-  else { equipoPacId = null; vinculos = []; informes = []; turnos = []; }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); }
+  else { equipoPacId=null; vinculos=[]; informes=[]; turnos=[]; $("histTimeline").innerHTML=""; }
   renderFotoHead(p);
-  $("pacModalMsg").textContent = "";
-  $("pacModalBg").classList.remove("hidden");
-  marcarSnap($("pacModalBg"));
+  $("pacModalMsg").className = "msg err"; $("pacModalMsg").textContent = "";
+  setTabPac("datos");
+  setEditablePac(!p);
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+  $("view-pac-detalle").classList.add("active");
+  window.scrollTo(0,0);
 }
-function cerrarModalPac(){ $("pacModalBg").classList.add("hidden"); }
+function cerrarModalPac(){ switchView("pacientes"); }
+
+async function loadHistoria(pacId){
+  const r = await sb.from("sesiones").select("fecha,estado,nota").eq("paciente_id",pacId).order("fecha",{ascending:false});
+  const ses = (r.data||[]).filter(s=>s.nota || s.estado!=="agendada");
+  const cont = $("histTimeline");
+  if(!ses.length){ cont.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin sesiones registradas todavía.</div>'; return; }
+  const L={realizada:"realizada",cancelada_con_aviso:"cancelada (con aviso)",cancelada_mismo_dia:"cancelada (mismo día)",ausente:"ausente",agendada:"agendada"};
+  cont.innerHTML = ses.map(s=>'<div class="tl-item"><div class="date">'+fmtFecha(s.fecha)+' · '+(L[s.estado]||s.estado)+'</div>'
+    +(s.nota?'<div class="txt">'+esc(s.nota)+'</div>':'')+'</div>').join("");
+}
 
 async function guardarPac(){
-  const msg = $("pacModalMsg"); msg.textContent = "";
+  const msg = $("pacModalMsg"); msg.className = "msg err"; msg.textContent = "";
   const nombre = $("f_nombre").value.trim();
   if(!nombre){ msg.textContent = "El nombre es obligatorio."; return; }
   const cob = $("f_cobertura").value;
@@ -848,18 +955,29 @@ async function guardarPac(){
   const btn = $("btnGuardarPac"); btn.disabled = true; btn.textContent = "Guardando...";
   const res = pacEditId
     ? await sb.from("pacientes").update(payload).eq("id",pacEditId)
-    : await sb.from("pacientes").insert(payload);
+    : await sb.from("pacientes").insert(payload).select().single();
   btn.disabled = false; btn.textContent = "Guardar";
   if(res.error){ msg.textContent = "No se pudo guardar."; return; }
-  cerrarModalPac(); loadPacientes();
+  if(!pacEditId && res.data) pacEditId = res.data.id;
+  await loadPacientes();
+  const p = pacientes.find(x=>x.id===pacEditId);
+  headerPac(p);
+  $("f_estado_wrap").style.display = "";
+  $("btnEliminarPac").classList.remove("hidden");
+  $("equipoSec").classList.remove("hidden"); $("turnosSec").classList.remove("hidden"); $("equipoAviso").classList.add("hidden");
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); renderFotoHead(p); }
+  setEditablePac(false);
+  msg.className = "msg ok"; msg.textContent = "Guardado ✓";
 }
 
 async function eliminarPac(){
   if(!pacEditId) return;
-  if(!confirm("¿Eliminar este paciente? No se puede deshacer.\nSi solo dejó de venir, mejor ponelo en estado Inactivo.")) return;
-  const res = await sb.from("pacientes").delete().eq("id",pacEditId);
-  if(res.error){ $("pacModalMsg").textContent = "No se pudo eliminar."; return; }
-  cerrarModalPac(); loadPacientes();
+  pedirConfirm("¿Eliminar este paciente? No se puede deshacer. Si solo dejó de venir, mejor ponelo en Inactivo.",
+    async ()=>{
+      const res = await sb.from("pacientes").delete().eq("id",pacEditId);
+      if(res.error){ $("pacModalMsg").className="msg err"; $("pacModalMsg").textContent="No se pudo eliminar."; return; }
+      switchView("pacientes");
+    }, "Eliminar", "Cancelar");
 }
 
 // ---- Foto de perfil del paciente ----
@@ -1557,12 +1675,14 @@ function initPacientes(){
   $("btnFoto").addEventListener("click",()=>$("pacFotoFile").click());
   $("pacFotoFile").addEventListener("change",e=>subirFoto(e.target.files[0]));
   $("btnFotoDel").addEventListener("click",quitarFoto);
-  $("btnCancelarPac").addEventListener("click",()=>cerrarSeguro($("pacModalBg")));
+  $("pacBack").addEventListener("click",cerrarModalPac);
+  $("btnEditarPac").addEventListener("click",()=>setEditablePac(true));
+  $("btnCancelarPac").addEventListener("click",()=>{ const p=pacientes.find(x=>x.id===pacEditId); rellenarPac(p); setEditablePac(false); $("pacModalMsg").textContent=""; });
   $("btnGuardarPac").addEventListener("click",guardarPac);
   $("btnEliminarPac").addEventListener("click",eliminarPac);
   $("f_cobertura").addEventListener("change",toggleOS);
   $("pacSearch").addEventListener("input",renderPacientes);
-  $("pacModalBg").addEventListener("click",e=>{ if(e.target===$("pacModalBg")) cerrarSeguro($("pacModalBg")); });
+  document.querySelectorAll("#pacTabs .tab").forEach(b=>b.addEventListener("click",()=>setTabPac(b.dataset.pt)));
   $("btnNuevoProf").addEventListener("click",()=>abrirModalProf(null));
   $("profSearch").addEventListener("input",renderProfCatalogo);
   $("btnSaveProf").addEventListener("click",guardarProf);
