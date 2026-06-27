@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v5</title>
+<title>Fono Gestión v6</title>
 <style>
   :root{
     /* Paleta pastel cálida: alegre pero prolija. Lavanda como color guía,
@@ -111,6 +111,20 @@
     background:var(--card);border-radius:7px;padding:6px 8px}
   .aviso{font-size:12px;color:var(--muted);margin-top:16px;background:var(--accent-soft);
     padding:10px 12px;border-radius:10px}
+  /* ---- Ficha ancha en tarjetas ---- */
+  .modal.wide{max-width:940px}
+  .modal.wide h3{font-size:23px;margin-bottom:4px}
+  .modal.wide label{font-size:12.5px;color:var(--muted)}
+  .modal.wide input,.modal.wide select,.modal.wide textarea{font-size:15px;padding:12px}
+  .ficha-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:16px;align-items:start;margin-top:10px}
+  .ficha-card{background:var(--input-bg);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .ficha-card .modal-sec{margin:0 0 10px;border-top:none;padding-top:0}
+  .ficha-card label{margin-top:11px}
+  .ficha-card input,.ficha-card select,.ficha-card textarea{background:var(--card)}
+  .modal.wide .modal-actions{justify-content:flex-end}
+  .modal.wide .modal-actions .btn-primary{flex:0 0 auto;padding-left:30px;padding-right:30px}
+  .modal.wide .modal-actions .btn-danger{margin-right:auto}
   .row2{display:flex;gap:10px;flex-wrap:wrap} .row2>div{flex:1;min-width:120px}
   .modal-actions{display:flex;gap:10px;margin-top:22px}
   .modal-actions .btn-primary{flex:1}
@@ -137,7 +151,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <div class="topbar">
-    <div class="brand">Fono Gestión <small>v5</small></div>
+    <div class="brand">Fono Gestión <small>v6</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes">Pacientes</button>
       <button class="nav-item" data-view="profesionales">Profesionales</button>
@@ -175,66 +189,81 @@
 
 <!-- ===== Modal Paciente ===== -->
 <div class="modal-bg hidden" id="pacModalBg">
-  <div class="modal">
+  <div class="modal wide">
     <h3 id="pacModalTitle">Nuevo paciente</h3>
-    <div class="modal-sec first">Datos personales</div>
-    <div class="row2">
-      <div><label>Nombre</label><input id="f_nombre"></div>
-      <div><label>Apellido</label><input id="f_apellido"></div>
-    </div>
-    <div class="row2">
-      <div><label>DNI</label><input id="f_dni" inputmode="numeric"></div>
-      <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
-    </div>
-    <label>Dirección</label><input id="f_direccion">
+    <div class="ficha-grid">
 
-    <div class="modal-sec">Cobertura</div>
-    <select id="f_cobertura">
-      <option value="particular">Particular</option>
-      <option value="obra_social">Obra social</option>
-    </select>
-    <div id="f_os_wrap" class="hidden">
-      <label>Obra social</label>
-      <input id="f_os" list="oslist" placeholder="Escribí o elegí...">
-      <datalist id="oslist"></datalist>
-    </div>
+      <div class="ficha-card">
+        <div class="modal-sec first">Datos personales</div>
+        <div class="row2">
+          <div><label>Nombre</label><input id="f_nombre"></div>
+          <div><label>Apellido</label><input id="f_apellido"></div>
+        </div>
+        <div class="row2">
+          <div><label>DNI</label><input id="f_dni" inputmode="numeric"></div>
+          <div><label>Fecha de nacimiento</label><input id="f_nac" type="date"></div>
+        </div>
+        <label>Dirección</label><input id="f_direccion">
+      </div>
 
-    <div class="modal-sec">Familia y contacto</div>
-    <div class="row2">
-      <div><label>Madre</label><input id="f_madre"></div>
-      <div><label>Padre</label><input id="f_padre"></div>
-    </div>
-    <label>Hermanos</label><input id="f_hermanos" placeholder="Ej: 2 (Juan 8, Ana 5)">
-    <label>Teléfono de contacto</label><input id="f_tel" inputmode="tel">
+      <div class="ficha-card">
+        <div class="modal-sec first">Cobertura</div>
+        <select id="f_cobertura">
+          <option value="particular">Particular</option>
+          <option value="obra_social">Obra social</option>
+        </select>
+        <div id="f_os_wrap" class="hidden">
+          <label>Obra social</label>
+          <input id="f_os" list="oslist" placeholder="Escribí o elegí...">
+          <datalist id="oslist"></datalist>
+        </div>
+      </div>
 
-    <div class="modal-sec">Salud</div>
-    <label>Pediatra</label><input id="f_pediatra">
-    <label>¿Tiene CUD? (Certificado Único de Discapacidad)</label>
-    <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
-    <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
-    <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
+      <div class="ficha-card">
+        <div class="modal-sec first">Familia y contacto</div>
+        <div class="row2">
+          <div><label>Madre</label><input id="f_madre"></div>
+          <div><label>Padre</label><input id="f_padre"></div>
+        </div>
+        <label>Hermanos</label><input id="f_hermanos" placeholder="Ej: 2 (Juan 8, Ana 5)">
+        <label>Teléfono de contacto</label><input id="f_tel" inputmode="tel">
+      </div>
 
-    <div class="modal-sec">Escolaridad</div>
-    <div class="row2">
-      <div><label>Institución educativa</label><input id="f_institucion"></div>
-      <div><label>Grado</label><input id="f_grado"></div>
-    </div>
-    <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
+      <div class="ficha-card">
+        <div class="modal-sec first">Salud</div>
+        <label>Pediatra</label><input id="f_pediatra">
+        <label>¿Tiene CUD? (Certificado Único de Discapacidad)</label>
+        <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
+        <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
+        <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
+      </div>
 
-    <div id="equipoSec" class="hidden">
-      <div class="modal-sec">Equipo profesional e informes</div>
-      <div class="aviso">🔧 Acá vas a poder vincular profesionales del catálogo y cargar informes con fecha (próximo paso). Por ahora cargá los profesionales en la pantalla «Profesionales».</div>
-    </div>
-    <div id="equipoAviso" class="aviso hidden">
-      💡 Guardá el paciente primero. Después vas a poder vincular su equipo profesional.
-    </div>
+      <div class="ficha-card">
+        <div class="modal-sec first">Escolaridad</div>
+        <div class="row2">
+          <div><label>Institución educativa</label><input id="f_institucion"></div>
+          <div><label>Grado</label><input id="f_grado"></div>
+        </div>
+        <label>Maestra integradora (nombre, o vacío si no tiene)</label><input id="f_integradora">
+      </div>
 
-    <div id="f_estado_wrap" class="hidden">
-      <div class="modal-sec">Estado</div>
-      <select id="f_estado">
-        <option value="activo">Activo</option>
-        <option value="inactivo">Inactivo</option>
-      </select>
+      <div class="ficha-card hidden" id="f_estado_wrap">
+        <div class="modal-sec first">Estado</div>
+        <select id="f_estado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+
+      <div class="ficha-card hidden" id="equipoSec">
+        <div class="modal-sec first">Equipo profesional e informes</div>
+        <div class="aviso" style="margin-top:0">🔧 Acá vas a vincular profesionales del catálogo y cargar informes con fecha (próximo paso). Por ahora cargalos en la pantalla «Profesionales».</div>
+      </div>
+      <div class="ficha-card hidden" id="equipoAviso">
+        <div class="modal-sec first">Equipo profesional</div>
+        <div class="aviso" style="margin-top:0">💡 Guardá el paciente primero. Después vas a poder vincular su equipo.</div>
+      </div>
+
     </div>
     <div class="msg err" id="pacModalMsg"></div>
     <div class="modal-actions">
