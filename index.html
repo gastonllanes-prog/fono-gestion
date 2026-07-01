@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v34</title>
+<title>Fono Gestión v35</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -299,6 +299,17 @@
   .infp-item .ti-main{flex:1;min-width:0}
   .infp-item .ti-t{font-weight:600;font-size:15.5px;color:var(--txt)}
   .infp-item .ti-f{font-size:13px;color:var(--muted2);margin-top:2px}
+  /* ---- Media del paciente ---- */
+  .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+  .media-item{background:var(--surface2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .media-thumb{width:100%;height:120px;object-fit:cover;display:block;background:var(--line)}
+  .media-icono{width:100%;height:120px;display:flex;align-items:center;justify-content:center;
+    font-size:40px;color:var(--muted2);background:var(--bg)}
+  .media-body{padding:10px 12px}
+  .media-nota{font-size:13px;color:var(--txt);min-height:16px;word-break:break-word}
+  .media-meta{font-size:12px;color:var(--muted2);margin-top:3px;display:flex;align-items:center;gap:8px}
+  .media-meta .adj-dl,.media-meta .adj-del{padding:2px 4px;font-size:13px}
+  .media-meta .adj-dl{margin-left:auto}
   /* ---- Modal de escritura grande (informes) — Nancy ve poco ---- */
   .modal.escribir{max-width:840px}
   .modal.escribir h3{font-size:27px;margin-bottom:10px}
@@ -333,9 +344,10 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v34</small></div>
+    <div class="brand">Fono Gestión <small>v35</small></div>
     <nav class="nav" id="nav">
-      <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
+      <button class="nav-item active" data-view="inicio"><i class="ti ti-layout-dashboard"></i>Inicio</button>
+      <button class="nav-item" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
       <button class="nav-item" data-view="profesionales"><i class="ti ti-stethoscope"></i>Profesionales</button>
       <button class="nav-item" data-view="finanzas"><i class="ti ti-cash"></i>Finanzas</button>
@@ -350,7 +362,24 @@
   <main class="main">
   <div class="content">
     <!-- ===== Vista Pacientes ===== -->
-    <section class="view active" id="view-pacientes">
+    <!-- ===== Vista Inicio (dashboard) ===== -->
+    <section class="view active" id="view-inicio">
+      <div class="page-head">
+        <h2>Hola, Nancy 👋</h2>
+        <span id="iniFecha" style="color:var(--muted2);font-size:16px;font-weight:600"></span>
+      </div>
+      <div class="stats" id="iniStats"></div>
+      <div id="iniAlertas"></div>
+      <div class="fieldset" style="margin-top:16px">
+        <div class="eyebrow" style="display:flex;align-items:center;gap:10px">
+          Turnos de hoy
+          <button type="button" class="btn-ghost" id="iniVerAgenda" style="margin-left:auto;text-transform:none;letter-spacing:0">Ver agenda</button>
+        </div>
+        <div id="iniHoy"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-pacientes">
       <div class="page-head">
         <h2>Pacientes</h2>
         <div class="search"><input id="pacSearch" placeholder="Buscar por nombre o DNI..."></div>
@@ -472,12 +501,17 @@
           <div class="modal-sec first">Valor de la sesión</div>
           <label>Valor particular (base de la comisión)</label>
           <input id="cfg_valor" inputmode="numeric" placeholder="35000">
-          <button class="btn-primary" id="btnSaveValor" style="margin-top:14px">Guardar valor</button>
+          <label>El tramo de comisión se calcula contando</label>
+          <select id="cfg_base">
+            <option value="sesiones">Sesiones por semana</option>
+            <option value="pacientes">Pacientes por semana</option>
+          </select>
+          <button class="btn-primary" id="btnSaveValor" style="margin-top:14px">Guardar</button>
           <div class="msg ok" id="cfgValorMsg" style="margin-top:8px"></div>
         </div>
         <div class="ficha-card">
           <div class="modal-sec first">Tramos de comisión</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">A partir de X sesiones por semana, la comisión al centro es Y%.</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Ej: de 1 a 9 → 30% · de 10 a 19 → 25% · desde 20 → 20%. Cargá un tramo por rango.</div>
           <div id="tramosList"></div>
           <button class="btn-ghost" id="btnAddTramo" style="margin-top:10px">+ Agregar tramo</button>
         </div>
@@ -578,6 +612,9 @@
             <select id="f_cud"><option value="no">No</option><option value="si">Sí</option></select>
             <label>Diagnóstico médico</label><textarea id="f_dxmed"></textarea>
             <label>Diagnóstico fonoaudiológico</label><textarea id="f_dxfono"></textarea>
+            <label>Consentimiento de uso de imagen firmado</label>
+            <select id="f_consent"><option value="no">No</option><option value="si">Sí</option></select>
+            <label>Fecha del consentimiento</label><input id="f_consent_fecha" type="date">
           </div>
           <div class="fieldset">
             <div class="eyebrow">Escolaridad</div>
@@ -626,6 +663,13 @@
             <button type="button" class="addnote" id="btnNuevoInfPac" style="margin:0 0 0 auto"><i class="ti ti-plus"></i> Nuevo informe</button>
           </div>
           <div id="infPacList"></div>
+        </div>
+        <div class="prof">
+          <div class="ph"><span class="role">Fotos, videos y archivos</span>
+            <button type="button" class="addnote" id="btnSubirMedia" style="margin:0 0 0 auto"><i class="ti ti-upload"></i> Subir archivo</button>
+          </div>
+          <div id="mediaConsentAviso" class="aviso hidden" style="margin:0 0 14px;background:var(--warn-bg);color:var(--warn)">⚠ Este paciente no tiene consentimiento de uso de imagen registrado.</div>
+          <div class="media-grid" id="mediaGrid"></div>
         </div>
       </div>
 
@@ -700,9 +744,10 @@
   <div class="modal" style="max-width:400px">
     <h3 id="tramoTitle">Tramo de comisión</h3>
     <div class="row2">
-      <div><label>Desde (sesiones/semana)</label><input id="tr_desde" inputmode="numeric"></div>
-      <div><label>Comisión %</label><input id="tr_pct" inputmode="decimal"></div>
+      <div><label>De</label><input id="tr_desde" inputmode="numeric" placeholder="1"></div>
+      <div><label>A (vacío = en adelante)</label><input id="tr_hasta" inputmode="numeric" placeholder="9"></div>
     </div>
+    <label>Comisión %</label><input id="tr_pct" inputmode="decimal" placeholder="30">
     <label>Vigente desde</label><input id="tr_vig" type="date">
     <div class="msg err" id="tramoMsg"></div>
     <div class="modal-actions">
@@ -894,6 +939,22 @@
   </div>
 </div>
 
+<!-- ===== Modal Subir media ===== -->
+<div class="modal-bg hidden" id="mediaModalBg" style="z-index:70">
+  <div class="modal" style="max-width:460px">
+    <h3>Subir foto, video o archivo</h3>
+    <label>Archivo</label>
+    <input type="file" id="md_file" style="font-size:15px">
+    <label>Nota (opcional)</label>
+    <input id="md_nota" placeholder="Ej: ejercicio de praxias, sesión del día">
+    <div class="msg err" id="mediaMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelMedia">Cancelar</button>
+      <button class="btn-primary" id="btnSaveMedia">Subir</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Modal Pago al centro ===== -->
 <div class="modal-bg hidden" id="pagoModalBg" style="z-index:70">
   <div class="modal" style="max-width:440px">
@@ -997,7 +1058,7 @@ function mostrarApp(session){
   OWNER_ID = session.user.id;  // se usa como carpeta privada en Storage
   cargarValorGlobal();         // valor de sesión vigente (se congela en cada sesión nueva)
   if (!window._pacInit){ initPacientes(); window._pacInit = true; }
-  loadPacientes();
+  switchView("inicio");
 }
 
 // ================== PACIENTES ==================
@@ -1142,6 +1203,8 @@ function rellenarPac(p){
   $("f_grado").value      = p ? (p.grado||"") : "";
   $("f_integradora").value= p ? (p.integradora||"") : "";
   $("f_estado").value     = p ? (p.estado||"activo") : "activo";
+  $("f_consent").value    = (p && p.consentimiento_firmado) ? "si" : "no";
+  $("f_consent_fecha").value = p ? (p.consentimiento_fecha||"") : "";
   renderSwatches(p ? (p.color||colorMenosUsado()) : colorMenosUsado());
   toggleOS();
 }
@@ -1180,8 +1243,8 @@ function abrirModalPac(id){
   $("equipoSec").classList.toggle("hidden", !p);
   $("turnosSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
-  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); }
-  else { equipoPacId=null; vinculos=[]; informes=[]; turnos=[]; $("histTimeline").innerHTML=""; $("infPacList").innerHTML=""; }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); loadMedia(p.id); }
+  else { equipoPacId=null; vinculos=[]; informes=[]; turnos=[]; mediaItems=[]; $("histTimeline").innerHTML=""; $("infPacList").innerHTML=""; $("mediaGrid").innerHTML=""; }
   renderFotoHead(p);
   $("pacModalMsg").className = "msg err"; $("pacModalMsg").textContent = "";
   setTabPac("datos");
@@ -1304,6 +1367,67 @@ function borrarInfPac(id){
     }, "Borrar","Cancelar");
 }
 
+// ---- Fotos, videos y archivos del paciente (Historia clínica · Bloque 3) ----
+let mediaItems = [];
+async function loadMedia(pacId){
+  const p = pacientes.find(x=>x.id===pacId);
+  $("mediaConsentAviso").classList.toggle("hidden", !!(p && p.consentimiento_firmado));
+  const r = await sb.from("media").select("*").eq("paciente_id",pacId).order("created_at",{ascending:false});
+  mediaItems = r.data || [];
+  const urls = {};
+  await Promise.all(mediaItems.filter(m=>m.tipo==="foto").map(async m=>{
+    const u = await sb.storage.from("adjuntos").createSignedUrl(m.archivo_path, 3600);
+    if(u.data) urls[m.id] = u.data.signedUrl;
+  }));
+  const c = $("mediaGrid");
+  if(!mediaItems.length){ c.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin archivos cargados todavía.</div>'; return; }
+  c.innerHTML = mediaItems.map(m=>{
+    const arriba = m.tipo==="foto" && urls[m.id]
+      ? '<img class="media-thumb" src="'+urls[m.id]+'" alt="">'
+      : '<div class="media-icono"><i class="ti '+(m.tipo==="video"?"ti-video":"ti-file")+'"></i></div>';
+    return '<div class="media-item">'+arriba
+      + '<div class="media-body"><div class="media-nota">'+(m.nota?esc(m.nota):"")+'</div>'
+      + '<div class="media-meta">'+fmtFecha(m.fecha_subida)
+      + '<button type="button" class="adj-dl" data-ver="'+m.id+'">Ver</button>'
+      + '<button type="button" class="adj-del" data-del="'+m.id+'">✕</button>'
+      + '</div></div></div>';
+  }).join("");
+  c.querySelectorAll("[data-ver]").forEach(b=>b.addEventListener("click",()=>verMedia(b.dataset.ver)));
+  c.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarMedia(b.dataset.del)));
+}
+function abrirMediaModal(){
+  $("md_file").value=""; $("md_nota").value="";
+  $("mediaMsg").textContent="";
+  $("mediaModalBg").classList.remove("hidden");
+  marcarSnap($("mediaModalBg"));
+}
+async function guardarMedia(){
+  const file = $("md_file").files[0];
+  if(!file){ $("mediaMsg").textContent="Elegí un archivo."; return; }
+  const tipo = file.type.startsWith("image/") ? "foto" : (file.type.startsWith("video/") ? "video" : "archivo");
+  const btn = $("btnSaveMedia"); btn.disabled=true; btn.textContent="Subiendo...";
+  const safe = file.name.replace(/[^\w.\-]+/g,"_");
+  const path = OWNER_ID + "/media/" + pacEditId + "/" + Date.now() + "_" + safe;
+  const up = await sb.storage.from("adjuntos").upload(path, file);
+  if(up.error){ btn.disabled=false; btn.textContent="Subir"; $("mediaMsg").textContent="No se pudo subir el archivo."; return; }
+  const ins = await sb.from("media").insert({ paciente_id: pacEditId, tipo, archivo_path: path, nota: $("md_nota").value.trim()||null });
+  btn.disabled=false; btn.textContent="Subir";
+  if(ins.error){ await sb.storage.from("adjuntos").remove([path]); $("mediaMsg").textContent="No se pudo guardar."; return; }
+  $("mediaModalBg").classList.add("hidden");
+  loadMedia(pacEditId);
+}
+async function verMedia(id){
+  const m = mediaItems.find(x=>x.id===id); if(!m) return;
+  const r = await sb.storage.from("adjuntos").createSignedUrl(m.archivo_path, 300);
+  if(r.data) window.open(r.data.signedUrl, "_blank");
+}
+function borrarMedia(id){
+  const m = mediaItems.find(x=>x.id===id); if(!m) return;
+  pedirConfirm("¿Borrar este archivo? No se puede recuperar.",
+    async ()=>{ await sb.storage.from("adjuntos").remove([m.archivo_path]); await sb.from("media").delete().eq("id",id); loadMedia(pacEditId); },
+    "Borrar","Cancelar");
+}
+
 async function guardarPac(){
   const msg = $("pacModalMsg"); msg.className = "msg err"; msg.textContent = "";
   const nombre = $("f_nombre").value.trim();
@@ -1342,6 +1466,8 @@ async function guardarPac(){
     grado:         $("f_grado").value.trim() || null,
     integradora:   $("f_integradora").value.trim() || null,
     color:         $("f_color").value || null,
+    consentimiento_firmado: $("f_consent").value === "si",
+    consentimiento_fecha:   $("f_consent_fecha").value || null,
     estado: pacEditId ? $("f_estado").value : "activo"
   };
   const btn = $("btnGuardarPac"); btn.disabled = true; btn.textContent = "Guardando...";
@@ -1357,7 +1483,7 @@ async function guardarPac(){
   $("f_estado_wrap").style.display = "";
   $("btnEliminarPac").classList.remove("hidden");
   $("equipoSec").classList.remove("hidden"); $("turnosSec").classList.remove("hidden"); $("equipoAviso").classList.add("hidden");
-  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); renderFotoHead(p); }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); loadMedia(p.id); renderFotoHead(p); }
   setEditablePac(false);
   msg.className = "msg ok"; msg.textContent = "Guardado ✓";
 }
@@ -1547,15 +1673,93 @@ function switchView(v){
   if(v==="agenda") loadAgenda();
   if(v==="config") loadConfig();
   if(v==="finanzas") loadFinanzas();
+  if(v==="inicio") loadInicio();
+}
+
+// ================== INICIO (dashboard) ==================
+async function loadInicio(){
+  if(VALOR_SESION===null) await cargarValorGlobal();
+  const hoy = hoyISO(), lun = lunesDe(hoy), dom = sumarDias(lun,6), mes1 = hoy.slice(0,7)+"-01";
+  const [rp, rt, rsHoy, rsSem, rcob, rmov, rfact, rtc, rcl] = await Promise.all([
+    sb.from("pacientes").select("id,nombre,apellido,color,estado,obra_social_id"),
+    sb.from("turnos_recurrentes").select("*").eq("activo",true),
+    sb.from("sesiones").select("id,paciente_id,hora_inicio,estado,turno_id").eq("fecha",hoy),
+    sb.from("sesiones").select("id,paciente_id,fecha,estado,valor").gte("fecha",lun).lte("fecha",dom).neq("estado","agendada"),
+    sb.from("cobros").select("monto,medio,facturado").gte("fecha",mes1).lte("fecha",hoy),
+    sb.from("cta_cte_centro").select("tipo,monto"),
+    sb.from("facturacion_os").select("monto,fecha_presentacion").eq("estado","pendiente"),
+    sb.from("reglas_comision").select("*"),
+    sb.from("reglas_cancelacion").select("*")
+  ]);
+  if(rp.data) pacientes = rp.data;
+  // fecha linda
+  const DIAS_F=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const MES_F=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const d = new Date();
+  $("iniFecha").textContent = DIAS_F[d.getDay()]+" "+d.getDate()+" de "+MES_F[d.getMonth()]+" de "+d.getFullYear();
+  // turnos de hoy: sesiones registradas + proyección de turnos fijos
+  const sesH = rsHoy.data||[];
+  const conS = sesH.filter(s=>s.turno_id).map(s=>s.turno_id);
+  const proy = (rt.data||[]).filter(t=> t.dia_semana===isoDay(d) && (!t.vigencia_desde || t.vigencia_desde<=hoy) && !conS.includes(t.id));
+  const items = [];
+  sesH.forEach(s=>items.push({ hora:hhmm(s.hora_inicio), pac:s.paciente_id, estado:s.estado }));
+  proy.forEach(t=>items.push({ hora:hhmm(t.hora_inicio), pac:t.paciente_id, estado:"agendada" }));
+  items.sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
+  const cont = $("iniHoy");
+  if(!items.length){
+    cont.innerHTML = '<div style="font-size:14px;color:var(--muted2);padding:6px 0">Sin turnos hoy.</div>';
+  } else {
+    cont.innerHTML = items.map(it=>{
+      const pc = pacColor(it.pac), tx = txDe(pc);
+      const est = it.estado!=="agendada" ? ' <span class="chip" style="background:var(--surface2);color:var(--muted)">'+(ESTADO_L[it.estado]||it.estado)+'</span>' : '';
+      return '<div class="infp-item" style="background:'+pc+'40;border-left:4px solid '+tx+';border-radius:0 10px 10px 0">'
+        + '<div class="ti-main"><div class="ti-t">'+(it.hora?it.hora+" · ":"")+esc(pacNom(it.pac))+est+'</div></div></div>';
+    }).join("");
+  }
+  // métricas
+  const cobs = rcob.data||[];
+  const cobradoMes = cobs.reduce((a,c)=>a+Number(c.monto),0);
+  const sinFact = cobs.filter(c=>c.medio==="transferencia" && !c.facturado).length;
+  const movs = rmov.data||[];
+  const saldo = movs.filter(m=>m.tipo==="pago").reduce((a,m)=>a+Number(m.monto),0)
+              - movs.filter(m=>m.tipo==="comision").reduce((a,m)=>a+Number(m.monto),0);
+  const saldoTxt = saldo<0 ? "Debés "+fmt$(-saldo) : (saldo>0 ? fmt$(saldo)+" a favor" : "$0 · al día");
+  const pend = rfact.data||[];
+  const porCobrarOS = pend.reduce((a,f)=>a+Number(f.monto),0);
+  const lunSave = comLunes; comLunes = lun;
+  const calc = calcularSemana(rsSem.data||[], rtc.data||[], rcl.data||[]);
+  comLunes = lunSave;
+  const activos = pacientes.filter(p=>p.estado!=="inactivo").length;
+  const stat=(ic,k,v,warn)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  $("iniStats").innerHTML =
+      stat("ti-users","Pacientes activos",activos)
+    + stat("ti-calendar-heart","Turnos hoy",items.length)
+    + stat("ti-calendar-check","Sesiones esta semana",calc.nSes)
+    + stat("ti-coins","Cobrado este mes",fmt$(cobradoMes))
+    + stat("ti-building-bank","Comisión de la semana",fmt$(calc.total))
+    + stat("ti-scale","Saldo con el centro",saldoTxt, saldo<0)
+    + stat("ti-clock-dollar","Por cobrar de OS",fmt$(porCobrarOS))
+    + stat("ti-alert-triangle","Canceladas c/aviso (sem.)",calc.conAviso, calc.conAviso>0);
+  // alertas
+  const alertas = [];
+  if(calc.conAviso>0) alertas.push("⚠ "+calc.conAviso+" cancelación(es) con aviso esta semana: cobrás la mitad y la comisión va completa.");
+  if(sinFact>0) alertas.push("⚠ Tenés "+sinFact+" transferencia(s) sin factura este mes.");
+  const viejas = pend.filter(f=>{
+    const a=f.fecha_presentacion.split("-").map(Number), h=hoy.split("-").map(Number);
+    return Math.round((new Date(h[0],h[1]-1,h[2])-new Date(a[0],a[1]-1,a[2]))/86400000) > 60;
+  }).length;
+  if(viejas>0) alertas.push("⚠ "+viejas+" factura(s) de obra social con más de 60 días sin cobrar.");
+  $("iniAlertas").innerHTML = alertas.map(a=>'<div class="aviso" style="margin-top:12px;background:var(--warn-bg);color:var(--warn)">'+a+'</div>').join("");
 }
 
 // ================== FINANZAS · F1 Cobros ==================
-let VALOR_SESION = null, cobros = [], cobSesionesPac = [];
+let VALOR_SESION = null, BASE_COMISION = "sesiones", cobros = [], cobSesionesPac = [];
 function fmt$(n){ return "$" + Number(n||0).toLocaleString("es-AR"); }
 
 async function cargarValorGlobal(){
-  const r = await sb.from("config").select("valor_sesion").maybeSingle();
+  const r = await sb.from("config").select("valor_sesion,base_comision").maybeSingle();
   VALOR_SESION = (r.data && r.data.valor_sesion!=null) ? Number(r.data.valor_sesion) : null;
+  BASE_COMISION = (r.data && r.data.base_comision) ? r.data.base_comision : "sesiones";
 }
 
 function setTabFin(t){
@@ -1705,13 +1909,13 @@ function sumarDias(f,n){ const p=f.split("-").map(Number); return ymd(new Date(p
 function tramosVigentes(tramosArr, fecha){
   const map={};
   tramosArr.filter(t=>t.vigencia_desde<=fecha).forEach(t=>{
-    const k=t.desde_sesiones;
+    const k = t.desde_sesiones+"|"+(t.hasta==null?"∞":t.hasta);
     if(!map[k] || t.vigencia_desde>map[k].vigencia_desde) map[k]=t;
   });
   return Object.values(map);
 }
 function pctTramo(tramosArr, fecha, n){
-  const v = tramosVigentes(tramosArr,fecha).filter(t=>t.desde_sesiones<=n);
+  const v = tramosVigentes(tramosArr,fecha).filter(t=> t.desde_sesiones<=n && (t.hasta==null || n<=t.hasta));
   if(!v.length) return null;
   return Number(v.sort((a,b)=>b.desde_sesiones-a.desde_sesiones)[0].porcentaje);
 }
@@ -1720,7 +1924,9 @@ function reglaCancelVigente(arr, fecha){
   return v[0]||null;
 }
 function calcularSemana(ses, tramosArr, cancelsArr){
-  const n = ses.length;
+  const nSes = ses.length;
+  // base del tramo: sesiones o pacientes distintos, según Configuración
+  const n = BASE_COMISION==="pacientes" ? new Set(ses.map(s=>s.paciente_id)).size : nSes;
   const pct = pctTramo(tramosArr, comLunes, n);
   let total=0, conAviso=0;
   const items = ses.map(s=>{
@@ -1735,7 +1941,7 @@ function calcularSemana(ses, tramosArr, cancelsArr){
     total += com;
     return { id:s.id, paciente_id:s.paciente_id, fecha:s.fecha, estado:s.estado, base, pctCom, com };
   });
-  return { n, pct, total, conAviso, items };
+  return { n, nSes, pct, total, conAviso, items };
 }
 
 async function loadComisiones(){
@@ -1758,9 +1964,9 @@ function renderComisiones(){
   const c = comCalc;
   const stat=(ic,k,v,warn)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
   $("comStats").innerHTML =
-      stat("ti-calendar-check","Sesiones computables",c.n)
+      stat("ti-calendar-check","Sesiones computables",c.nSes)
     + stat("ti-alert-triangle","Canceladas con aviso",c.conAviso, c.conAviso>0)
-    + stat("ti-percentage","Tramo aplicado", c.pct!=null ? c.pct+"%" : "—")
+    + stat("ti-percentage","Tramo aplicado"+(BASE_COMISION==="pacientes"?" ("+c.n+" pac.)":""), c.pct!=null ? c.pct+"%" : "—")
     + stat("ti-building-bank","Comisión de la semana",fmt$(c.total));
   const av = $("comAviso");
   if(c.pct==null && c.n>0){
@@ -2045,23 +2251,33 @@ async function loadConfig(){
     sb.from("reglas_cancelacion").select("*").order("vigencia_desde",{ascending:false}).order("horas_aviso",{ascending:false})
   ]);
   $("cfg_valor").value = (rc.data && rc.data.valor_sesion!=null) ? rc.data.valor_sesion : "";
+  $("cfg_base").value = (rc.data && rc.data.base_comision) ? rc.data.base_comision : "sesiones";
+  BASE_COMISION = $("cfg_base").value;
   tramos = rt.data || []; cancels = rl.data || [];
   $("cfgValorMsg").textContent = "";
   renderTramos(); renderCancels();
 }
 async function guardarValor(){
   const v = parseInt(($("cfg_valor").value||"").replace(/[^0-9]/g,""),10);
-  const res = await sb.from("config").upsert({ owner_id: OWNER_ID, valor_sesion: isNaN(v)?null:v });
+  const res = await sb.from("config").upsert({ owner_id: OWNER_ID, valor_sesion: isNaN(v)?null:v, base_comision: $("cfg_base").value });
   const m = $("cfgValorMsg");
   if(res.error){ m.className="msg err"; m.textContent="No se pudo guardar."; return; }
   VALOR_SESION = isNaN(v) ? null : v;   // las sesiones nuevas congelan este valor
+  BASE_COMISION = $("cfg_base").value;
+  renderTramos();
   m.className="msg ok"; m.textContent="Guardado ✓";
 }
 
+function tramoLabel(t){
+  const u = (typeof BASE_COMISION!=="undefined" && BASE_COMISION==="pacientes") ? "pac" : "ses";
+  return (t.hasta!=null ? "De <b>"+t.desde_sesiones+"</b> a <b>"+t.hasta+"</b>" : "Desde <b>"+t.desde_sesiones+"</b>")
+    + " "+u+"/sem → <b>"+t.porcentaje+"%</b>";
+}
 function renderTramos(){
   const c = $("tramosList");
   if(!tramos.length){ c.innerHTML = '<div style="font-size:13px;color:var(--muted)">Sin tramos cargados.</div>'; return; }
-  c.innerHTML = tramos.map(t=>'<div class="cfg-row" data-id="'+t.id+'"><span>Desde <b>'+t.desde_sesiones+'</b> ses/sem → <b>'+t.porcentaje+'%</b></span><span class="vig">'+fmtFecha(t.vigencia_desde)+'</span></div>').join("");
+  const orden = [...tramos].sort((a,b)=> (b.vigencia_desde<a.vigencia_desde?-1:(b.vigencia_desde>a.vigencia_desde?1:0)) || (a.desde_sesiones-b.desde_sesiones));
+  c.innerHTML = orden.map(t=>'<div class="cfg-row" data-id="'+t.id+'"><span>'+tramoLabel(t)+'</span><span class="vig">'+fmtFecha(t.vigencia_desde)+'</span></div>').join("");
   c.querySelectorAll(".cfg-row").forEach(el=>el.addEventListener("click",()=>abrirTramo(el.dataset.id)));
 }
 function abrirTramo(id){
@@ -2069,6 +2285,7 @@ function abrirTramo(id){
   const t = id ? tramos.find(x=>x.id===id) : null;
   $("tramoTitle").textContent = t ? "Editar tramo" : "Nuevo tramo";
   $("tr_desde").value = t ? t.desde_sesiones : "";
+  $("tr_hasta").value = (t && t.hasta!=null) ? t.hasta : "";
   $("tr_pct").value   = t ? t.porcentaje : "";
   $("tr_vig").value   = t ? t.vigencia_desde : hoyISO();
   $("btnDelTramo").classList.toggle("hidden", !t);
@@ -2078,8 +2295,11 @@ function abrirTramo(id){
 }
 async function guardarTramo(){
   const desde = parseInt($("tr_desde").value,10), pct = parseFloat($("tr_pct").value);
-  if(isNaN(desde) || isNaN(pct)){ $("tramoMsg").textContent="Completá sesiones y porcentaje."; return; }
-  const payload = { desde_sesiones:desde, porcentaje:pct, vigencia_desde:$("tr_vig").value||hoyISO() };
+  const hastaRaw = $("tr_hasta").value.trim();
+  const hasta = hastaRaw==="" ? null : parseInt(hastaRaw,10);
+  if(isNaN(desde) || isNaN(pct)){ $("tramoMsg").textContent="Completá el rango y el porcentaje."; return; }
+  if(hasta!=null && (isNaN(hasta) || hasta<desde)){ $("tramoMsg").textContent="El 'a' tiene que ser mayor o igual que el 'de'."; return; }
+  const payload = { desde_sesiones:desde, hasta, porcentaje:pct, vigencia_desde:$("tr_vig").value||hoyISO() };
   const res = tramoEditId ? await sb.from("reglas_comision").update(payload).eq("id",tramoEditId) : await sb.from("reglas_comision").insert(payload);
   if(res.error){ $("tramoMsg").textContent="No se pudo guardar."; return; }
   $("tramoModalBg").classList.add("hidden"); loadConfig();
@@ -2604,6 +2824,10 @@ function initPacientes(){
   $("btnDelNota").addEventListener("click",eliminarNota);
   $("notaModalBg").addEventListener("click",e=>{ if(e.target===$("notaModalBg")) cerrarSeguro($("notaModalBg")); });
   $("btnNuevoInfPac").addEventListener("click",abrirInfPacNuevo);
+  $("btnSubirMedia").addEventListener("click",abrirMediaModal);
+  $("btnSaveMedia").addEventListener("click",guardarMedia);
+  $("btnCancelMedia").addEventListener("click",()=>cerrarSeguro($("mediaModalBg")));
+  $("mediaModalBg").addEventListener("click",e=>{ if(e.target===$("mediaModalBg")) cerrarSeguro($("mediaModalBg")); });
   $("btnSaveInfPac").addEventListener("click",guardarInfPac);
   $("btnCancelInfPac").addEventListener("click",()=>cerrarSeguro($("infPacModalBg")));
   $("infPacModalBg").addEventListener("click",e=>{ if(e.target===$("infPacModalBg")) cerrarSeguro($("infPacModalBg")); });
@@ -2660,6 +2884,7 @@ function initPacientes(){
   $("btnCancelFcob").addEventListener("click",()=>cerrarSeguro($("fcobModalBg")));
   $("fcobModalBg").addEventListener("click",e=>{ if(e.target===$("fcobModalBg")) cerrarSeguro($("fcobModalBg")); });
   document.querySelectorAll("#cajaPerBtns button").forEach(b=>b.addEventListener("click",()=>{ cajaPer = b.dataset.per; loadCaja(); }));
+  $("iniVerAgenda").addEventListener("click",()=>switchView("agenda"));
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
