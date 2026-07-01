@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v33</title>
+<title>Fono Gestión v34</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -333,7 +333,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v33</small></div>
+    <div class="brand">Fono Gestión <small>v34</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -405,7 +405,22 @@
 
       <!-- Tabs F2/F3/F4 (placeholder) -->
       <div class="panel" data-ftp="caja">
-        <div class="empty"><i class="ti ti-report-money"></i>La caja (resumen diario/semanal/mensual) llega en la fase 4.</div>
+        <div class="fieldset" style="margin-bottom:16px">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            Ingresos de Nancy
+            <span id="cajaPerBtns" style="margin-left:auto;display:flex;gap:6px">
+              <button type="button" class="btn-ghost" data-per="dia">Hoy</button>
+              <button type="button" class="btn-ghost" data-per="semana">Esta semana</button>
+              <button type="button" class="btn-ghost" data-per="mes">Este mes</button>
+            </span>
+          </div>
+          <div class="stats" id="cajaCobros" style="margin-bottom:0"></div>
+        </div>
+        <div id="cajaAviso" class="aviso hidden" style="margin:0 0 16px"></div>
+        <div class="fieldset">
+          <div class="eyebrow">Situación general</div>
+          <div class="stats" id="cajaGlobal" style="margin-bottom:0"></div>
+        </div>
       </div>
       <div class="panel" data-ftp="comisiones">
         <div class="fieldset" style="margin-bottom:16px">
@@ -1548,6 +1563,7 @@ function setTabFin(t){
   document.querySelectorAll("#view-finanzas .panel").forEach(p=>p.classList.toggle("show",p.dataset.ftp===t));
   if(t==="comisiones") loadComisiones();
   if(t==="os") loadOS();
+  if(t==="caja") loadCaja();
 }
 
 async function loadFinanzas(){
@@ -1955,6 +1971,68 @@ function borrarFact(id){
   const f = facturas.find(x=>x.id===id); if(!f) return;
   pedirConfirm("¿Borrar esta facturación de "+fmt$(f.monto)+"?",
     async ()=>{ await sb.from("facturacion_os").delete().eq("id",id); loadOS(); }, "Borrar","Cancelar");
+}
+
+// ================== FINANZAS · F4 Caja ==================
+let cajaPer = "semana";
+
+function rangoCaja(){
+  const hoy = hoyISO();
+  if(cajaPer==="dia")    return [hoy, hoy, "hoy"];
+  if(cajaPer==="mes")    return [hoy.slice(0,7)+"-01", hoy, "este mes"];
+  return [lunesDe(hoy), hoy, "esta semana"];
+}
+
+async function loadCaja(){
+  const [d1, d2] = rangoCaja();
+  const lun = lunesDe(hoyISO());
+  const [rc, rm, rf, rs] = await Promise.all([
+    sb.from("cobros").select("monto,medio,facturado,fecha").gte("fecha",d1).lte("fecha",d2),
+    sb.from("cta_cte_centro").select("tipo,monto"),
+    sb.from("facturacion_os").select("monto,estado,fecha_presentacion").eq("estado","pendiente"),
+    sb.from("sesiones").select("estado,valor").gte("fecha",lun).lte("fecha",sumarDias(lun,6)).neq("estado","agendada")
+  ]);
+  renderCaja(rc.data||[], rm.data||[], rf.data||[], rs.data||[]);
+}
+
+function renderCaja(cbs, movs, pendOS, sesSem){
+  const per = rangoCaja()[2];
+  const stat=(ic,k,v,warn,ok)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"'+(ok?' style="background:var(--ok-bg);color:var(--ok)"':'')+'></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  const tot = cbs.reduce((a,c)=>a+Number(c.monto),0);
+  const efe = cbs.filter(c=>c.medio==="efectivo").reduce((a,c)=>a+Number(c.monto),0);
+  const tra = cbs.filter(c=>c.medio==="transferencia").reduce((a,c)=>a+Number(c.monto),0);
+  const sinF = cbs.filter(c=>c.medio==="transferencia" && !c.facturado).length;
+  $("cajaCobros").innerHTML =
+      stat("ti-coins","Cobrado "+per,fmt$(tot),false,true)
+    + stat("ti-cash","Efectivo",fmt$(efe))
+    + stat("ti-building-bank","Transferencia",fmt$(tra))
+    + stat("ti-receipt-off","Transf. sin factura",sinF, sinF>0);
+  const pagos = movs.filter(m=>m.tipo==="pago").reduce((a,m)=>a+Number(m.monto),0);
+  const coms  = movs.filter(m=>m.tipo==="comision").reduce((a,m)=>a+Number(m.monto),0);
+  const saldo = pagos - coms;
+  const saldoTxt = saldo<0 ? "Debés "+fmt$(-saldo) : (saldo>0 ? fmt$(saldo)+" a favor" : "$0 · al día");
+  const porCobrarOS = pendOS.reduce((a,f)=>a+Number(f.monto),0);
+  const viejas = pendOS.filter(f=>{
+    const a=f.fecha_presentacion.split("-").map(Number), h=hoyISO().split("-").map(Number);
+    return Math.round((new Date(h[0],h[1]-1,h[2])-new Date(a[0],a[1]-1,a[2]))/86400000) > 60;
+  }).length;
+  const conAviso = sesSem.filter(s=>s.estado==="cancelada_con_aviso").length;
+  $("cajaGlobal").innerHTML =
+      stat("ti-scale","Saldo con el centro",saldoTxt, saldo<0)
+    + stat("ti-clock-dollar","Por cobrar de OS",fmt$(porCobrarOS), viejas>0)
+    + stat("ti-calendar-check","Sesiones esta semana",sesSem.length)
+    + stat("ti-alert-triangle","Canceladas c/aviso (semana)",conAviso, conAviso>0);
+  const av = $("cajaAviso");
+  if(conAviso>0){
+    av.classList.remove("hidden");
+    av.textContent = "⚠ Semana con "+conAviso+" cancelación(es) con aviso: cobrás la mitad y pagás la comisión completa. Revisá el tab Comisiones.";
+  } else av.classList.add("hidden");
+  document.querySelectorAll("#cajaPerBtns button").forEach(b=>{
+    const on = b.dataset.per===cajaPer;
+    b.style.borderColor = on ? "var(--accent)" : "";
+    b.style.color = on ? "var(--accent2)" : "";
+    b.style.fontWeight = on ? "700" : "";
+  });
 }
 
 // ================== CONFIGURACIÓN ==================
@@ -2581,6 +2659,7 @@ function initPacientes(){
   $("btnSaveFcob").addEventListener("click",guardarFcob);
   $("btnCancelFcob").addEventListener("click",()=>cerrarSeguro($("fcobModalBg")));
   $("fcobModalBg").addEventListener("click",e=>{ if(e.target===$("fcobModalBg")) cerrarSeguro($("fcobModalBg")); });
+  document.querySelectorAll("#cajaPerBtns button").forEach(b=>b.addEventListener("click",()=>{ cajaPer = b.dataset.per; loadCaja(); }));
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
