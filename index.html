@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v31</title>
+<title>Fono Gestión v32</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,23 +52,23 @@
 
   /* ---- APP (menú lateral) ---- */
   #app{display:flex;flex-direction:row;min-height:100vh}
-  .sidebar{width:230px;flex:0 0 230px;background:var(--card);border-right:1px solid var(--line);
-    display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
-  .sidebar .brand{font-weight:700;color:var(--accent2);font-size:19px;padding:6px 10px 20px}
-  .sidebar .brand small{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
-  .nav{display:flex;flex-direction:column;gap:5px}
-  .nav-item{display:flex;align-items:center;gap:12px;background:transparent;color:var(--txt);
-    font-size:15.5px;padding:12px 13px;border-radius:11px;text-align:left;width:100%}
-  .nav-item i{font-size:20px;color:var(--muted);width:22px;text-align:center}
-  .nav-item:hover{background:var(--accent-soft)}
-  .nav-item.active{background:var(--accent-soft);color:var(--accent2);font-weight:700}
-  .nav-item.active i{color:var(--accent2)}
-  .side-foot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
-  .side-foot .who{color:var(--muted);font-size:12px;padding:0 8px 8px;word-break:break-all}
-  .logout{display:flex;align-items:center;gap:10px;background:transparent;color:var(--err);
-    font-size:14.5px;padding:10px 11px;border-radius:10px;width:100%;text-align:left}
+  .sidebar{width:250px;flex:0 0 250px;background:#0E3A36;
+    display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+  .sidebar .brand{font-weight:800;color:#fff;font-size:20px;padding:6px 12px 24px;letter-spacing:-.02em}
+  .sidebar .brand small{color:rgba(255,255,255,.45);font-weight:400;font-size:12px;margin-left:6px}
+  .nav{display:flex;flex-direction:column;gap:6px}
+  .nav-item{display:flex;align-items:center;gap:13px;background:transparent;color:rgba(255,255,255,.78);
+    font-size:16px;font-weight:600;padding:13px 14px;border-radius:11px;text-align:left;width:100%;transition:background .15s}
+  .nav-item i{font-size:21px;color:rgba(255,255,255,.55);width:22px;text-align:center}
+  .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+  .nav-item.active{background:rgba(255,255,255,.17);color:#fff;font-weight:700}
+  .nav-item.active i{color:#7FD1C8}
+  .side-foot{margin-top:auto;border-top:1px solid rgba(255,255,255,.14);padding-top:14px}
+  .side-foot .who{color:rgba(255,255,255,.5);font-size:12px;padding:0 8px 8px;word-break:break-all}
+  .logout{display:flex;align-items:center;gap:10px;background:transparent;color:#F2A9A0;
+    font-size:15px;padding:10px 11px;border-radius:10px;width:100%;text-align:left}
   .logout i{font-size:19px}
-  .logout:hover{background:#fdecec}
+  .logout:hover{background:rgba(255,255,255,.08);color:#fff}
   .main{flex:1;min-width:0;display:flex;flex-direction:column}
   .content{flex:1;padding:30px 36px;width:100%}
   .view{display:none} .view.active{display:block}
@@ -91,7 +91,7 @@
   .btn-primary{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px}
   .btn-primary:hover{background:var(--accent2)}
   .btn-primary:disabled{opacity:.6}
-  .btn-ghost{background:var(--card);color:var(--txt);border:1px solid var(--line);padding:9px 14px;border-radius:10px;font-size:14px}
+  .btn-ghost{background:var(--card);color:var(--txt);border:1px solid var(--line);padding:11px 16px;border-radius:10px;font-size:15px}
   .btn-ghost:hover{border-color:var(--accent)}
   .btn-danger{background:transparent;color:var(--err);border:1px solid #f0d4d4;padding:9px 14px;border-radius:10px;font-size:14px}
 
@@ -100,22 +100,22 @@
     color:var(--muted2);padding:56px 20px;font-size:14px}
   .empty i{font-size:42px;opacity:.55}
   .page-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-  .page-head h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-right:auto}
-  .search input{width:280px;padding:10px 14px;border:1px solid var(--line-strong);border-radius:10px;
-    background:var(--card);font-size:14px;color:var(--txt)}
+  .page-head h2{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-right:auto}
+  .search input{width:300px;padding:12px 14px;border:1px solid var(--line-strong);border-radius:10px;
+    background:var(--card);font-size:15px;color:var(--txt)}
   .search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  .btn-primary{background:var(--accent);color:#fff;font-weight:600;font-size:14px;padding:10px 16px;border-radius:10px}
+  .btn-primary{background:var(--accent);color:#fff;font-weight:600;font-size:15px;padding:12px 18px;border-radius:10px}
   .btn-primary:hover{background:var(--accent2)}
   /* ---- Franja de stats ---- */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;
     display:flex;align-items:center;gap:14px}
-  .stat>i{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent2);
-    display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+  .stat>i{width:48px;height:48px;border-radius:12px;background:var(--accent-soft);color:var(--accent2);
+    display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
   .stat.alert{border-color:var(--warn)}
   .stat.alert>i{background:var(--warn-bg);color:var(--warn)}
   .stat .k{font-size:12px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-  .stat .v{font-family:var(--ff-display);font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
+  .stat .v{font-family:var(--ff-display);font-size:28px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
   @media(max-width:880px){.stats{grid-template-columns:repeat(2,1fr)}}
   /* ---- Grilla de tarjetas (estilo rediseño) ---- */
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
@@ -127,11 +127,11 @@
   .avatar{width:48px;height:48px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
     font-family:var(--ff-display);font-weight:700;color:#fff;font-size:16px;overflow:hidden}
   .avatar img{width:100%;height:100%;object-fit:cover}
-  .card .name{font-family:var(--ff-display);font-weight:700;font-size:15.5px;letter-spacing:-.01em;color:var(--txt)}
-  .card .dni{font-size:12.5px;color:var(--muted2);margin-top:1px}
-  .card .crow{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .card .name{font-family:var(--ff-display);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--txt)}
+  .card .dni{font-size:13.5px;color:var(--muted2);margin-top:1px}
+  .card .crow{display:flex;align-items:center;justify-content:space-between;margin-top:13px;font-size:13.5px;color:var(--muted)}
   .card .crow .lbl{color:var(--muted2)}
-  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px}
   .chip-os{background:var(--info-bg);color:var(--info)}
   .chip-particular{background:var(--warn-bg);color:var(--warn)}
   .chip-inactivo{background:#EFEFF2;color:var(--muted)}
@@ -150,21 +150,21 @@
     display:flex;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap}
   .dhead .pac-foto-av{width:84px;height:84px;flex:0 0 84px;font-size:30px}
   .dhead .who{flex:1;min-width:220px}
-  .dhead .who h3{font-size:23px;font-weight:700;letter-spacing:-.02em}
+  .dhead .who h3{font-size:26px;font-weight:700;letter-spacing:-.02em}
   .dhead .who .sub{color:var(--muted2);font-size:13.5px;margin-top:3px}
   .dmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .dactions{display:flex;gap:8px;flex-wrap:wrap}
   .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
-  .tab{padding:12px 18px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;background:none}
+  .tab{padding:13px 20px;font-weight:600;font-size:15.5px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;background:none}
   .tab:hover{color:var(--txt)}
   .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
   .panel{display:none} .panel.show{display:block}
   .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
   .fieldset{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-  .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:14px}
-  .fieldset label{display:block;font-size:12px;color:var(--muted2);font-weight:600;margin:14px 0 4px}
+  .eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:14px}
+  .fieldset label{display:block;font-size:13px;color:var(--muted2);font-weight:600;margin:14px 0 4px}
   .fieldset input,.fieldset select,.fieldset textarea{width:100%;padding:10px 12px;border:1px solid var(--line-strong);
-    border-radius:10px;background:var(--card);color:var(--txt);font-size:14px;font-family:inherit}
+    border-radius:10px;background:var(--card);color:var(--txt);font-size:15px;font-family:inherit}
   .fieldset textarea{min-height:64px;resize:vertical}
   .fieldset input:focus,.fieldset select:focus,.fieldset textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   .lectura input,.lectura select,.lectura textarea{border-color:transparent;background:transparent;
@@ -259,16 +259,16 @@
   .cal-title{font-size:18px;font-weight:700;min-width:175px;text-align:center;text-transform:capitalize}
   #view-agenda.active{width:100%}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
-  .cal-dow{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
-  .cal-cell{min-height:132px;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  .cal-dow{font-size:13.5px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
+  .cal-cell{min-height:152px;background:var(--card);border:1px solid var(--line);border-radius:10px;
     padding:6px;cursor:pointer;overflow:hidden;transition:.12s}
   .cal-cell:hover{border-color:var(--accent)}
   .cal-cell.otro{opacity:.45}
   .cal-cell.hoy{box-shadow:0 0 0 2px var(--accent-soft);border-color:var(--accent)}
   .cal-cell.finde{background:var(--surface2)}
   .cal-cell.hoy .cal-num{color:var(--accent2)}
-  .cal-num{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px}
-  .cal-turno{font-size:13px;font-weight:600;padding:5px 9px;border-radius:6px;margin:4px 0;white-space:nowrap;
+  .cal-num{font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:3px}
+  .cal-turno{font-size:14.5px;font-weight:600;padding:5px 9px;border-radius:6px;margin:4px 0;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;color:var(--txt);border-left:4px solid var(--accent)}
   .cal-turno .ch{font-weight:700;margin-right:4px}
   .cal-turno.cancelada_con_aviso,.cal-turno.cancelada_mismo_dia{text-decoration:line-through;opacity:.85}
@@ -297,8 +297,8 @@
   .infp-item{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--line);
     border-radius:10px;padding:12px 14px;margin:8px 0}
   .infp-item .ti-main{flex:1;min-width:0}
-  .infp-item .ti-t{font-weight:600;font-size:14px;color:var(--txt)}
-  .infp-item .ti-f{font-size:12px;color:var(--muted2);margin-top:2px}
+  .infp-item .ti-t{font-weight:600;font-size:15.5px;color:var(--txt)}
+  .infp-item .ti-f{font-size:13px;color:var(--muted2);margin-top:2px}
   /* ---- Modal de escritura grande (informes) — Nancy ve poco ---- */
   .modal.escribir{max-width:840px}
   .modal.escribir h3{font-size:27px;margin-bottom:10px}
@@ -333,7 +333,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v31</small></div>
+    <div class="brand">Fono Gestión <small>v32</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
