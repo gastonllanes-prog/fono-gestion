@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v32</title>
+<title>Fono Gestión v33</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -333,7 +333,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v32</small></div>
+    <div class="brand">Fono Gestión <small>v33</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -438,7 +438,14 @@
         </div>
       </div>
       <div class="panel" data-ftp="os">
-        <div class="empty"><i class="ti ti-clock-dollar"></i>Facturación a obras sociales y aging llegan en la fase 3.</div>
+        <div class="stats" id="osStats"></div>
+        <div class="fieldset">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:10px">
+            Facturación a obras sociales
+            <button type="button" class="btn-ghost" id="btnNuevaFact" style="margin-left:auto;text-transform:none;letter-spacing:0">+ Registrar facturación</button>
+          </div>
+          <div id="factList"></div>
+        </div>
       </div>
     </section>
 
@@ -886,6 +893,46 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="btnCancelPago">Cancelar</button>
       <button class="btn-primary" id="btnSavePago">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Facturación OS ===== -->
+<div class="modal-bg hidden" id="factModalBg" style="z-index:70">
+  <div class="modal" style="max-width:520px">
+    <h3>Registrar facturación</h3>
+    <label>Obra social</label>
+    <select id="fx_os"></select>
+    <label>Paciente (opcional — dejalo vacío si es una presentación global)</label>
+    <select id="fx_pac"></select>
+    <div class="row2">
+      <div><label>Período facturado</label><input id="fx_periodo" type="month"></div>
+      <div><label>Sesiones facturadas</label><input id="fx_ses" inputmode="numeric" placeholder="10"></div>
+    </div>
+    <div class="row2">
+      <div><label>Monto</label><input id="fx_monto" inputmode="numeric" placeholder="120000"></div>
+      <div><label>Fecha de presentación</label><input id="fx_fecha" type="date"></div>
+    </div>
+    <div class="msg err" id="factMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelFact">Cancelar</button>
+      <button class="btn-primary" id="btnSaveFact">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Marcar cobrada ===== -->
+<div class="modal-bg hidden" id="fcobModalBg" style="z-index:70">
+  <div class="modal" style="max-width:420px">
+    <h3>La obra social pagó</h3>
+    <div class="row2">
+      <div><label>Monto cobrado</label><input id="fc_monto" inputmode="numeric"></div>
+      <div><label>Fecha de cobro</label><input id="fc_fecha" type="date"></div>
+    </div>
+    <div class="msg err" id="fcobMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelFcob">Cancelar</button>
+      <button class="btn-primary" id="btnSaveFcob">Confirmar cobro</button>
     </div>
   </div>
 </div>
@@ -1500,6 +1547,7 @@ function setTabFin(t){
   document.querySelectorAll("#finTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.ft===t));
   document.querySelectorAll("#view-finanzas .panel").forEach(p=>p.classList.toggle("show",p.dataset.ftp===t));
   if(t==="comisiones") loadComisiones();
+  if(t==="os") loadOS();
 }
 
 async function loadFinanzas(){
@@ -1787,6 +1835,126 @@ async function guardarPagoCentro(){
   if(res.error){ $("pagoMsg").textContent="No se pudo guardar."; return; }
   $("pagoModalBg").classList.add("hidden");
   loadComisiones();
+}
+
+// ================== FINANZAS · F3 Obras sociales + aging ==================
+let facturas = [], sesRealesCache = [], factCobrarId = null;
+const MES_L = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+function periodoLabel(p){ const x=(p||"").split("-"); return x.length===2 ? (MES_L[parseInt(x[1],10)]||"?")+" "+x[0] : p; }
+
+async function loadOS(){
+  const [rf, ro, rs, rp] = await Promise.all([
+    sb.from("facturacion_os").select("*").order("fecha_presentacion",{ascending:false}),
+    sb.from("obras_sociales").select("*").order("nombre",{ascending:true}),
+    sb.from("sesiones").select("paciente_id,fecha,estado").neq("estado","agendada"),
+    sb.from("pacientes").select("id,nombre,apellido,color,estado,obra_social_id")
+  ]);
+  facturas = rf.data||[]; obras = ro.data||obras; sesRealesCache = rs.data||[];
+  if(rp.data) pacientes = rp.data;
+  renderOS();
+}
+function agingDias(f){
+  const fin = (f.estado==="cobrada" && f.fecha_cobro) ? f.fecha_cobro : hoyISO();
+  const a=f.fecha_presentacion.split("-").map(Number), b=fin.split("-").map(Number);
+  return Math.round((new Date(b[0],b[1]-1,b[2]) - new Date(a[0],a[1]-1,a[2]))/86400000);
+}
+function realesDe(f){
+  const pacsOS = f.paciente_id ? [f.paciente_id] : pacientes.filter(p=>p.obra_social_id===f.obra_social_id).map(p=>p.id);
+  return sesRealesCache.filter(s=> (s.fecha||"").slice(0,7)===f.periodo && pacsOS.includes(s.paciente_id)).length;
+}
+function renderOS(){
+  const pend = facturas.filter(f=>f.estado==="pendiente");
+  const porCobrar = pend.reduce((a,f)=>a+Number(f.monto),0);
+  const viejas = pend.filter(f=>agingDias(f)>60).length;
+  const cobrado = facturas.filter(f=>f.estado==="cobrada").reduce((a,f)=>a+Number(f.monto_cobrado!=null?f.monto_cobrado:f.monto),0);
+  const stat=(ic,k,v,warn)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  $("osStats").innerHTML =
+      stat("ti-clock-dollar","Por cobrar de OS",fmt$(porCobrar))
+    + stat("ti-files","Facturas pendientes",pend.length)
+    + stat("ti-alert-triangle","Deuda vieja (>60 días)",viejas, viejas>0)
+    + stat("ti-circle-check","Cobrado histórico",fmt$(cobrado));
+  const c = $("factList");
+  if(!facturas.length){ c.innerHTML='<div style="font-size:13px;color:var(--muted2);padding:8px 0">Sin facturaciones registradas. Tocá "+ Registrar facturación".</div>'; return; }
+  c.innerHTML = facturas.map(f=>{
+    const os = obras.find(o=>o.id===f.obra_social_id);
+    const quien = f.paciente_id ? " · "+esc(pacNom(f.paciente_id)) : "";
+    const reales = realesDe(f);
+    const brecha = f.sesiones_facturadas - reales;
+    const brechaChip = brecha>0
+      ? '<span class="chip" style="background:var(--warn-bg);color:var(--warn)">'+f.sesiones_facturadas+' fact. vs '+reales+' reales (+'+brecha+')</span>'
+      : '<span class="chip" style="background:var(--ok-bg);color:var(--ok)">'+f.sesiones_facturadas+' fact. vs '+reales+' reales</span>';
+    const d = agingDias(f);
+    let estadoChip;
+    if(f.estado==="cobrada"){
+      estadoChip = '<span class="chip" style="background:var(--ok-bg);color:var(--ok)">cobrada '+(f.fecha_cobro?fmtFecha(f.fecha_cobro):"")+' · '+fmt$(f.monto_cobrado!=null?f.monto_cobrado:f.monto)+'</span>';
+    } else {
+      const col = d>60 ? "background:var(--danger-bg);color:var(--err)" : (d>30 ? "background:var(--warn-bg);color:var(--warn)" : "background:var(--ok-bg);color:var(--ok)");
+      estadoChip = '<span class="chip" style="'+col+'">hace '+d+' días</span>';
+    }
+    return '<div class="infp-item">'
+      + '<i class="ti ti-building-hospital" style="font-size:22px;color:var(--info)" aria-hidden="true"></i>'
+      + '<div class="ti-main"><div class="ti-t">'+esc(os?os.nombre:"?")+quien+' · '+periodoLabel(f.periodo)+' · '+fmt$(f.monto)+'</div>'
+      + '<div class="ti-f">presentada el '+fmtFecha(f.fecha_presentacion)+'</div></div>'
+      + brechaChip + estadoChip
+      + (f.estado==="pendiente" ? '<button type="button" class="btn-mini" data-cob="'+f.id+'">Cobrada</button>' : '')
+      + '<button type="button" class="adj-del" data-del="'+f.id+'" title="Borrar">✕</button>'
+      + '</div>';
+  }).join("");
+  c.querySelectorAll("[data-cob]").forEach(b=>b.addEventListener("click",()=>abrirFcob(b.dataset.cob)));
+  c.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarFact(b.dataset.del)));
+}
+function abrirFact(){
+  if(!obras.length){ pedirConfirm("No hay obras sociales cargadas. Cargá una desde la ficha de un paciente (Cobertura → Obra social).", ()=>{}, "Entendido","Cerrar"); return; }
+  $("fx_os").innerHTML = obras.map(o=>'<option value="'+o.id+'">'+esc(o.nombre)+'</option>').join("");
+  const act = pacientes.filter(p=>p.estado!=="inactivo");
+  $("fx_pac").innerHTML = '<option value="">— toda la obra social —</option>' + act.map(p=>'<option value="'+p.id+'">'+esc((((p.apellido||"")+" "+(p.nombre||"")).trim())||p.nombre||"")+'</option>').join("");
+  $("fx_periodo").value = hoyISO().slice(0,7);
+  $("fx_ses").value=""; $("fx_monto").value="";
+  $("fx_fecha").value = hoyISO();
+  $("factMsg").textContent="";
+  $("factModalBg").classList.remove("hidden");
+  marcarSnap($("factModalBg"));
+}
+async function guardarFact(){
+  const msg=$("factMsg"); msg.textContent="";
+  const ses = parseInt($("fx_ses").value,10), monto = parseInt(($("fx_monto").value||"").replace(/[^0-9]/g,""),10);
+  if(!$("fx_os").value){ msg.textContent="Elegí la obra social."; return; }
+  if(!$("fx_periodo").value){ msg.textContent="Poné el período."; return; }
+  if(isNaN(ses)||ses<0){ msg.textContent="Poné cuántas sesiones facturaste."; return; }
+  if(isNaN(monto)||monto<=0){ msg.textContent="Poné el monto."; return; }
+  const btn=$("btnSaveFact"); btn.disabled=true; btn.textContent="Guardando...";
+  const res = await sb.from("facturacion_os").insert({
+    obra_social_id: $("fx_os").value, paciente_id: $("fx_pac").value||null,
+    periodo: $("fx_periodo").value, sesiones_facturadas: ses, monto,
+    fecha_presentacion: $("fx_fecha").value||hoyISO()
+  });
+  btn.disabled=false; btn.textContent="Guardar";
+  if(res.error){ msg.textContent="No se pudo guardar."; return; }
+  $("factModalBg").classList.add("hidden");
+  loadOS();
+}
+function abrirFcob(id){
+  const f = facturas.find(x=>x.id===id); if(!f) return;
+  factCobrarId = id;
+  $("fc_monto").value = Number(f.monto);
+  $("fc_fecha").value = hoyISO();
+  $("fcobMsg").textContent="";
+  $("fcobModalBg").classList.remove("hidden");
+  marcarSnap($("fcobModalBg"));
+}
+async function guardarFcob(){
+  const monto = parseInt(($("fc_monto").value||"").replace(/[^0-9]/g,""),10);
+  if(isNaN(monto)||monto<0){ $("fcobMsg").textContent="Poné el monto cobrado."; return; }
+  if(!$("fc_fecha").value){ $("fcobMsg").textContent="Poné la fecha."; return; }
+  const res = await sb.from("facturacion_os").update({ estado:"cobrada", fecha_cobro:$("fc_fecha").value, monto_cobrado:monto }).eq("id",factCobrarId);
+  if(res.error){ $("fcobMsg").textContent="No se pudo guardar."; return; }
+  $("fcobModalBg").classList.add("hidden");
+  loadOS();
+}
+function borrarFact(id){
+  const f = facturas.find(x=>x.id===id); if(!f) return;
+  pedirConfirm("¿Borrar esta facturación de "+fmt$(f.monto)+"?",
+    async ()=>{ await sb.from("facturacion_os").delete().eq("id",id); loadOS(); }, "Borrar","Cancelar");
 }
 
 // ================== CONFIGURACIÓN ==================
@@ -2406,6 +2574,13 @@ function initPacientes(){
   $("btnSavePago").addEventListener("click",guardarPagoCentro);
   $("btnCancelPago").addEventListener("click",()=>cerrarSeguro($("pagoModalBg")));
   $("pagoModalBg").addEventListener("click",e=>{ if(e.target===$("pagoModalBg")) cerrarSeguro($("pagoModalBg")); });
+  $("btnNuevaFact").addEventListener("click",abrirFact);
+  $("btnSaveFact").addEventListener("click",guardarFact);
+  $("btnCancelFact").addEventListener("click",()=>cerrarSeguro($("factModalBg")));
+  $("factModalBg").addEventListener("click",e=>{ if(e.target===$("factModalBg")) cerrarSeguro($("factModalBg")); });
+  $("btnSaveFcob").addEventListener("click",guardarFcob);
+  $("btnCancelFcob").addEventListener("click",()=>cerrarSeguro($("fcobModalBg")));
+  $("fcobModalBg").addEventListener("click",e=>{ if(e.target===$("fcobModalBg")) cerrarSeguro($("fcobModalBg")); });
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
