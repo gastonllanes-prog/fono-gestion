@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v30</title>
+<title>Fono Gestión v31</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -333,7 +333,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v30</small></div>
+    <div class="brand">Fono Gestión <small>v31</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -408,7 +408,34 @@
         <div class="empty"><i class="ti ti-report-money"></i>La caja (resumen diario/semanal/mensual) llega en la fase 4.</div>
       </div>
       <div class="panel" data-ftp="comisiones">
-        <div class="empty"><i class="ti ti-building-bank"></i>Comisiones y cuenta corriente con el centro llegan en la fase 2.</div>
+        <div class="fieldset" style="margin-bottom:16px">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            Comisión de la semana
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+              <button type="button" class="btn-ghost" id="comPrev" style="padding:5px 11px">◀</button>
+              <span id="comRango" style="font-size:13px;font-weight:700;color:var(--txt);min-width:170px;text-align:center"></span>
+              <button type="button" class="btn-ghost" id="comNext" style="padding:5px 11px">▶</button>
+              <button type="button" class="btn-ghost" id="comHoy" style="padding:5px 11px">Hoy</button>
+            </span>
+          </div>
+          <div class="stats" id="comStats" style="margin-bottom:14px"></div>
+          <div id="comAviso" class="aviso hidden" style="margin:0 0 12px"></div>
+          <div id="comDesglose"></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">
+            <button type="button" class="btn-primary" id="btnCerrarSem"><i class="ti ti-lock"></i> Cerrar semana</button>
+            <span id="comCerradaChip" class="chip hidden" style="background:var(--ok-bg);color:var(--ok)"></span>
+            <span id="comMsg" style="font-size:13px;color:var(--err)"></span>
+          </div>
+        </div>
+
+        <div class="fieldset">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:10px">
+            Cuenta corriente con el centro
+            <button type="button" class="btn-ghost" id="btnPagoCentro" style="margin-left:auto;text-transform:none;letter-spacing:0">+ Registrar pago al centro</button>
+          </div>
+          <div class="stats" id="ccStats" style="grid-template-columns:minmax(0,420px);margin-bottom:14px"></div>
+          <div id="ccMovs"></div>
+        </div>
       </div>
       <div class="panel" data-ftp="os">
         <div class="empty"><i class="ti ti-clock-dollar"></i>Facturación a obras sociales y aging llegan en la fase 3.</div>
@@ -841,6 +868,24 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="btnCancelCobro">Cancelar</button>
       <button class="btn-primary" id="btnSaveCobro">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Pago al centro ===== -->
+<div class="modal-bg hidden" id="pagoModalBg" style="z-index:70">
+  <div class="modal" style="max-width:440px">
+    <h3>Registrar pago al centro</h3>
+    <div class="row2">
+      <div><label>Monto</label><input id="pg_monto" inputmode="numeric" placeholder="100000"></div>
+      <div><label>Fecha</label><input id="pg_fecha" type="date"></div>
+    </div>
+    <label>Nota (opcional)</label>
+    <input id="pg_nota" placeholder="Ej: rendición semana del 29/06">
+    <div class="msg err" id="pagoMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelPago">Cancelar</button>
+      <button class="btn-primary" id="btnSavePago">Guardar</button>
     </div>
   </div>
 </div>
@@ -1454,6 +1499,7 @@ async function cargarValorGlobal(){
 function setTabFin(t){
   document.querySelectorAll("#finTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.ft===t));
   document.querySelectorAll("#view-finanzas .panel").forEach(p=>p.classList.toggle("show",p.dataset.ftp===t));
+  if(t==="comisiones") loadComisiones();
 }
 
 async function loadFinanzas(){
@@ -1582,6 +1628,165 @@ function borrarCobro(id){
   pedirConfirm("¿Borrar este cobro de "+fmt$(cb.monto)+" ("+pacNom(cb.paciente_id)+")?",
     async ()=>{ await sb.from("cobros").delete().eq("id",id); loadFinanzas(); },
     "Borrar","Cancelar");
+}
+
+// ================== FINANZAS · F2 Comisiones + cuenta corriente ==================
+let comLunes = null, ccMovs = [], comCalc = null;
+const ESTADO_L = {realizada:"realizada",cancelada_con_aviso:"canceló con aviso",cancelada_mismo_dia:"canceló mismo día",ausente:"ausente"};
+
+function lunesDe(f){ const p=f.split("-").map(Number); const d=new Date(p[0],p[1]-1,p[2]);
+  const l=new Date(d.getFullYear(),d.getMonth(),d.getDate()-(isoDay(d)-1)); return ymd(l); }
+function sumarDias(f,n){ const p=f.split("-").map(Number); return ymd(new Date(p[0],p[1]-1,p[2]+n)); }
+
+function tramosVigentes(tramosArr, fecha){
+  const map={};
+  tramosArr.filter(t=>t.vigencia_desde<=fecha).forEach(t=>{
+    const k=t.desde_sesiones;
+    if(!map[k] || t.vigencia_desde>map[k].vigencia_desde) map[k]=t;
+  });
+  return Object.values(map);
+}
+function pctTramo(tramosArr, fecha, n){
+  const v = tramosVigentes(tramosArr,fecha).filter(t=>t.desde_sesiones<=n);
+  if(!v.length) return null;
+  return Number(v.sort((a,b)=>b.desde_sesiones-a.desde_sesiones)[0].porcentaje);
+}
+function reglaCancelVigente(arr, fecha){
+  const v = arr.filter(r=>r.vigencia_desde<=fecha).sort((a,b)=> a.vigencia_desde<b.vigencia_desde?1:-1);
+  return v[0]||null;
+}
+function calcularSemana(ses, tramosArr, cancelsArr){
+  const n = ses.length;
+  const pct = pctTramo(tramosArr, comLunes, n);
+  let total=0, conAviso=0;
+  const items = ses.map(s=>{
+    const base = Number(s.valor||0);
+    let pctCom = 100;
+    if(s.estado==="cancelada_con_aviso"){
+      conAviso++;
+      const r = reglaCancelVigente(cancelsArr, s.fecha);   // regla vigente a la fecha de ESA sesión
+      if(r && r.pct_comision!=null) pctCom = Number(r.pct_comision);
+    }
+    const com = pct!=null ? Math.round(base*(pct/100)*(pctCom/100)) : 0;
+    total += com;
+    return { id:s.id, paciente_id:s.paciente_id, fecha:s.fecha, estado:s.estado, base, pctCom, com };
+  });
+  return { n, pct, total, conAviso, items };
+}
+
+async function loadComisiones(){
+  if(!comLunes) comLunes = lunesDe(hoyISO());
+  const dom = sumarDias(comLunes,6);
+  const [rs, rt, rl, rm] = await Promise.all([
+    sb.from("sesiones").select("id,paciente_id,fecha,estado,valor").gte("fecha",comLunes).lte("fecha",dom).neq("estado","agendada").order("fecha",{ascending:true}),
+    sb.from("reglas_comision").select("*"),
+    sb.from("reglas_cancelacion").select("*"),
+    sb.from("cta_cte_centro").select("*").order("fecha",{ascending:false}).order("created_at",{ascending:false})
+  ]);
+  ccMovs = rm.data || [];
+  comCalc = calcularSemana(rs.data||[], rt.data||[], rl.data||[]);
+  renderComisiones();
+}
+
+function renderComisiones(){
+  const dom = sumarDias(comLunes,6);
+  $("comRango").textContent = "Lun "+fmtFecha(comLunes).slice(0,5)+" – Dom "+fmtFecha(dom).slice(0,5)+" "+dom.slice(0,4);
+  const c = comCalc;
+  const stat=(ic,k,v,warn)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  $("comStats").innerHTML =
+      stat("ti-calendar-check","Sesiones computables",c.n)
+    + stat("ti-alert-triangle","Canceladas con aviso",c.conAviso, c.conAviso>0)
+    + stat("ti-percentage","Tramo aplicado", c.pct!=null ? c.pct+"%" : "—")
+    + stat("ti-building-bank","Comisión de la semana",fmt$(c.total));
+  const av = $("comAviso");
+  if(c.pct==null && c.n>0){
+    av.classList.remove("hidden");
+    av.textContent = "⚠ No hay tramos de comisión vigentes para esta semana → la comisión da $0. Cargalos en Configuración antes de cerrar.";
+  } else if(c.conAviso>0){
+    av.classList.remove("hidden");
+    av.textContent = "⚠ Esta semana hay "+c.conAviso+" cancelación(es) con aviso: el paciente paga la mitad pero la comisión al centro va completa. Es tu peor caso — tenelo a la vista.";
+  } else av.classList.add("hidden");
+  const d = $("comDesglose");
+  if(!c.items.length){
+    d.innerHTML = '<div style="font-size:13px;color:var(--muted2)">Sin sesiones computables en esta semana.</div>';
+  } else {
+    d.innerHTML = c.items.map(i=>{
+      const pc = pacColor(i.paciente_id);
+      const det = fmt$(i.base) + (c.pct!=null ? " × "+c.pct+"%" : "") + (i.pctCom!==100 ? " × "+i.pctCom+"%" : "");
+      return '<div class="infp-item" style="border-left:4px solid '+pc+';border-radius:0 10px 10px 0">'
+        + '<div class="ti-main"><div class="ti-t">'+esc(pacNom(i.paciente_id))+' · '+(ESTADO_L[i.estado]||i.estado)+'</div>'
+        + '<div class="ti-f">'+fmtFecha(i.fecha)+' · '+det+'</div></div>'
+        + '<div class="ti-t" style="flex:none">'+fmt$(i.com)+'</div></div>';
+    }).join("");
+  }
+  const cerrada = ccMovs.find(m=>m.tipo==="comision" && m.semana_inicio===comLunes);
+  $("btnCerrarSem").classList.toggle("hidden", !!cerrada || c.n===0);
+  const chip = $("comCerradaChip");
+  chip.classList.toggle("hidden", !cerrada);
+  if(cerrada) chip.textContent = "Semana cerrada el "+fmtFecha(cerrada.fecha)+" · "+fmt$(cerrada.monto)+" (congelado)";
+  $("comMsg").textContent = "";
+  renderCtaCte();
+}
+
+function renderCtaCte(){
+  const pagos = ccMovs.filter(m=>m.tipo==="pago").reduce((a,m)=>a+Number(m.monto),0);
+  const coms  = ccMovs.filter(m=>m.tipo==="comision").reduce((a,m)=>a+Number(m.monto),0);
+  const saldo = pagos - coms;
+  const txt = saldo<0 ? "Debés "+fmt$(-saldo) : (saldo>0 ? fmt$(saldo)+" a favor" : "$0 · al día");
+  $("ccStats").innerHTML = '<div class="stat'+(saldo<0?" alert":"")+'"><i class="ti ti-scale"></i><div><div class="k">Saldo con el centro</div><div class="v">'+txt+'</div></div></div>';
+  const c = $("ccMovs");
+  if(!ccMovs.length){ c.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin movimientos todavía. Cerrá una semana o registrá un pago.</div>'; return; }
+  c.innerHTML = ccMovs.map(m=>{
+    const esPago = m.tipo==="pago";
+    const nota = m.detalle && m.detalle.nota ? " · "+esc(m.detalle.nota) : "";
+    return '<div class="infp-item">'
+      + '<i class="ti '+(esPago?"ti-arrow-up-right":"ti-arrow-down-left")+'" style="font-size:20px;color:'+(esPago?"var(--ok)":"var(--warn)")+'" aria-hidden="true"></i>'
+      + '<div class="ti-main"><div class="ti-t">'+(esPago?"Pago al centro":"Comisión semana del "+fmtFecha(m.semana_inicio))+'</div>'
+      + '<div class="ti-f">'+fmtFecha(m.fecha)+nota+'</div></div>'
+      + '<div class="ti-t" style="flex:none;color:'+(esPago?"var(--ok)":"var(--warn)")+'">'+(esPago?"+":"−")+fmt$(m.monto)+'</div>'
+      + '<button type="button" class="adj-del" data-del="'+m.id+'" title="Borrar">✕</button>'
+      + '</div>';
+  }).join("");
+  c.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarMov(b.dataset.del)));
+}
+
+function cerrarSemana(){
+  if(!comCalc || comCalc.n===0) return;
+  if(ccMovs.find(m=>m.tipo==="comision" && m.semana_inicio===comLunes)) return;
+  const extra = comCalc.pct==null ? " OJO: sin tramos vigentes la comisión queda en $0." : "";
+  pedirConfirm("¿Cerrar la semana del "+fmtFecha(comLunes)+"? La comisión queda CONGELADA en "+fmt$(comCalc.total)+" ("+comCalc.n+" sesiones"+(comCalc.pct!=null?" · "+comCalc.pct+"%":"")+"). Un cambio de reglas posterior no la recalcula."+extra,
+    async ()=>{
+      const det = { n: comCalc.n, pct: comCalc.pct,
+        sesiones: comCalc.items.map(i=>({id:i.id,fecha:i.fecha,paciente:pacNom(i.paciente_id),estado:i.estado,base:i.base,pctCom:i.pctCom,com:i.com})) };
+      const res = await sb.from("cta_cte_centro").insert({ tipo:"comision", semana_inicio: comLunes, monto: comCalc.total, fecha: hoyISO(), detalle: det });
+      if(res.error){ $("comMsg").textContent = "No se pudo cerrar (¿ya estaba cerrada?)."; return; }
+      loadComisiones();
+    }, "Cerrar semana", "Cancelar");
+}
+function borrarMov(id){
+  const m = ccMovs.find(x=>x.id===id); if(!m) return;
+  const txt = m.tipo==="comision"
+    ? "¿Borrar la comisión de la semana del "+fmtFecha(m.semana_inicio)+" ("+fmt$(m.monto)+")? La semana queda REABIERTA y se puede volver a cerrar."
+    : "¿Borrar el pago de "+fmt$(m.monto)+"?";
+  pedirConfirm(txt, async ()=>{ await sb.from("cta_cte_centro").delete().eq("id",id); loadComisiones(); }, "Borrar","Cancelar");
+}
+function abrirPagoCentro(){
+  $("pg_monto").value=""; $("pg_fecha").value=hoyISO(); $("pg_nota").value="";
+  $("pagoMsg").textContent="";
+  $("pagoModalBg").classList.remove("hidden");
+  marcarSnap($("pagoModalBg"));
+}
+async function guardarPagoCentro(){
+  const monto = parseInt(($("pg_monto").value||"").replace(/[^0-9]/g,""),10);
+  if(isNaN(monto)||monto<=0){ $("pagoMsg").textContent="Poné el monto."; return; }
+  if(!$("pg_fecha").value){ $("pagoMsg").textContent="Poné la fecha."; return; }
+  const btn=$("btnSavePago"); btn.disabled=true; btn.textContent="Guardando...";
+  const nota = $("pg_nota").value.trim();
+  const res = await sb.from("cta_cte_centro").insert({ tipo:"pago", monto, fecha:$("pg_fecha").value, detalle: nota?{nota}:null });
+  btn.disabled=false; btn.textContent="Guardar";
+  if(res.error){ $("pagoMsg").textContent="No se pudo guardar."; return; }
+  $("pagoModalBg").classList.add("hidden");
+  loadComisiones();
 }
 
 // ================== CONFIGURACIÓN ==================
@@ -2193,6 +2398,14 @@ function initPacientes(){
   $("btnSaveCobro").addEventListener("click",guardarCobro);
   $("btnCancelCobro").addEventListener("click",()=>cerrarSeguro($("cobModalBg")));
   $("cobModalBg").addEventListener("click",e=>{ if(e.target===$("cobModalBg")) cerrarSeguro($("cobModalBg")); });
+  $("comPrev").addEventListener("click",()=>{ comLunes = sumarDias(comLunes,-7); loadComisiones(); });
+  $("comNext").addEventListener("click",()=>{ comLunes = sumarDias(comLunes,7); loadComisiones(); });
+  $("comHoy").addEventListener("click",()=>{ comLunes = lunesDe(hoyISO()); loadComisiones(); });
+  $("btnCerrarSem").addEventListener("click",cerrarSemana);
+  $("btnPagoCentro").addEventListener("click",abrirPagoCentro);
+  $("btnSavePago").addEventListener("click",guardarPagoCentro);
+  $("btnCancelPago").addEventListener("click",()=>cerrarSeguro($("pagoModalBg")));
+  $("pagoModalBg").addEventListener("click",e=>{ if(e.target===$("pagoModalBg")) cerrarSeguro($("pagoModalBg")); });
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
