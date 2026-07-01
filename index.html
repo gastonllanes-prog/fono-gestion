@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v27</title>
+<title>Fono Gestión v29</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
 
   /* ---- LOGIN ---- */
   #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
-    background:linear-gradient(135deg,#efe9fb 0%,#f7eef0 50%,#eaf4f1 100%)}
+    background:linear-gradient(135deg,#E7F2F0 0%,#F4F6F8 55%,#EDF1F0 100%)}
   .loginbox{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
     border-radius:18px;padding:30px;box-shadow:0 12px 34px rgba(123,98,196,.14)}
   .loginbox h1{margin:0 0 4px;font-size:23px;color:var(--accent2)}
@@ -163,6 +163,9 @@
   .lectura input,.lectura select,.lectura textarea{border-color:transparent;background:transparent;
     padding-left:0;font-weight:500;appearance:none;-webkit-appearance:none;pointer-events:none}
   .lectura textarea{resize:none}
+  .lectura input::placeholder,.lectura textarea::placeholder{color:transparent}
+  .lectura input[type="date"]::-webkit-calendar-picker-indicator{opacity:0}
+  .lectura select{background-image:none}
   .prof{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
   .prof .ph{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .prof .ph .role{font-family:var(--ff-display);font-weight:700;color:var(--accent2);font-size:14px}
@@ -255,6 +258,8 @@
   .cal-cell:hover{border-color:var(--accent)}
   .cal-cell.otro{opacity:.45}
   .cal-cell.hoy{box-shadow:0 0 0 2px var(--accent-soft);border-color:var(--accent)}
+  .cal-cell.finde{background:var(--surface2)}
+  .cal-cell.hoy .cal-num{color:var(--accent2)}
   .cal-num{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px}
   .cal-turno{font-size:13px;font-weight:600;padding:5px 9px;border-radius:6px;margin:4px 0;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;color:var(--txt);border-left:4px solid var(--accent)}
@@ -281,6 +286,12 @@
   .adj-size{font-size:12px;color:var(--muted)}
   .adj-dl{color:var(--accent2);font-weight:700;font-size:13px;background:transparent;padding:4px 8px}
   .adj-del{color:var(--err);background:transparent;font-size:15px;padding:4px 8px}
+  /* ---- Informes del paciente (Historia clínica) ---- */
+  .infp-item{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;margin:8px 0}
+  .infp-item .ti-main{flex:1;min-width:0}
+  .infp-item .ti-t{font-weight:600;font-size:14px;color:var(--txt)}
+  .infp-item .ti-f{font-size:12px;color:var(--muted2);margin-top:2px}
   /* ---- Modal de escritura grande (informes) — Nancy ve poco ---- */
   .modal.escribir{max-width:840px}
   .modal.escribir h3{font-size:27px;margin-bottom:10px}
@@ -315,7 +326,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v27</small></div>
+    <div class="brand">Fono Gestión <small>v29</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
@@ -516,6 +527,12 @@
             <button type="button" class="addnote" id="btnNuevaNota" style="margin:0 0 0 auto"><i class="ti ti-plus"></i> Nueva nota</button>
           </div>
           <div class="timeline" id="histTimeline"></div>
+        </div>
+        <div class="prof">
+          <div class="ph"><span class="role">Informes</span>
+            <button type="button" class="addnote" id="btnNuevoInfPac" style="margin:0 0 0 auto"><i class="ti ti-plus"></i> Nuevo informe</button>
+          </div>
+          <div id="infPacList"></div>
         </div>
       </div>
 
@@ -731,6 +748,26 @@
   </div>
 </div>
 
+<!-- ===== Modal Informe del paciente ===== -->
+<div class="modal-bg hidden" id="infPacModalBg" style="z-index:70">
+  <div class="modal" style="max-width:520px">
+    <h3>Nuevo informe</h3>
+    <div class="row2">
+      <div><label>Título</label><input id="ip_titulo"></div>
+      <div><label>Fecha</label><input id="ip_fecha" type="date"></div>
+    </div>
+    <label>Texto (opcional)</label>
+    <textarea id="ip_texto" style="min-height:100px" placeholder="Podés escribir el informe acá..."></textarea>
+    <label>Archivo (PDF o Word, opcional)</label>
+    <input type="file" id="ip_file" accept=".pdf,.doc,.docx" style="margin-top:6px;font-size:15px">
+    <div class="msg err" id="infPacMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelInfPac">Cancelar</button>
+      <button class="btn-primary" id="btnSaveInfPac">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Cartel de confirmación (cambios sin guardar, etc.) ===== -->
 <div class="modal-bg hidden" id="confirmBg" style="z-index:80">
   <div class="modal" style="max-width:380px">
@@ -883,7 +920,8 @@ function renderPacientes(){
     const turnoTxt = tArr.length ? (DIAS_CORTO[tArr[0].dia_semana]+" "+hhmm(tArr[0].hora_inicio)) : "—";
     const foto = fotoUrls[p.id];
     const av = foto ? '<img src="'+foto+'" alt="">' : esc(inicial(p));
-    const avStyle = foto ? '' : 'background:'+avatarColor(nom);
+    const pc = p.color || "#DEE3EA";
+    const avStyle = foto ? '' : 'background:'+pc+';color:'+txDe(pc);
     const bar = p.color || "var(--line)";
     html += '<button class="card'+(inactivo?" inactivo":"")+'" data-id="'+p.id+'" style="border-top:5px solid '+bar+'">'
       + '<div class="top"><div class="avatar" style="'+avStyle+'">'+av+'</div>'
@@ -944,6 +982,7 @@ function setEditablePac(on){
   $("btnEditarPac").classList.toggle("hidden", on || !pacEditId);
   $("btnGuardarPac").classList.toggle("hidden", !on);
   $("btnCancelarPac").classList.toggle("hidden", !on || !pacEditId);
+  $("btnEliminarPac").classList.toggle("hidden", !on || !pacEditId);
 }
 
 function abrirModalPac(id){
@@ -956,8 +995,8 @@ function abrirModalPac(id){
   $("equipoSec").classList.toggle("hidden", !p);
   $("turnosSec").classList.toggle("hidden", !p);
   $("equipoAviso").classList.toggle("hidden", !!p);
-  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); }
-  else { equipoPacId=null; vinculos=[]; informes=[]; turnos=[]; $("histTimeline").innerHTML=""; }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); }
+  else { equipoPacId=null; vinculos=[]; informes=[]; turnos=[]; $("histTimeline").innerHTML=""; $("infPacList").innerHTML=""; }
   renderFotoHead(p);
   $("pacModalMsg").className = "msg err"; $("pacModalMsg").textContent = "";
   setTabPac("datos");
@@ -1013,6 +1052,73 @@ function eliminarNota(){
     "Eliminar","Cancelar");
 }
 
+// ---- Informes del paciente (Historia clínica · Bloque 2) ----
+let infPac = [];
+async function loadInformesPac(pacId){
+  const r = await sb.from("informes_paciente").select("*").eq("paciente_id",pacId).order("fecha",{ascending:false});
+  infPac = r.data || [];
+  renderInfPac();
+}
+function renderInfPac(){
+  const c = $("infPacList");
+  if(!infPac.length){ c.innerHTML='<div style="font-size:13px;color:var(--muted2)">Sin informes cargados todavía.</div>'; return; }
+  c.innerHTML = infPac.map(i=>{
+    const meta = fmtFecha(i.fecha) + (i.archivo_path ? ' · archivo adjunto' : (i.texto ? ' · texto' : ''));
+    return '<div class="infp-item">'
+      + '<i class="ti ti-file-text" style="font-size:22px;color:var(--accent2)" aria-hidden="true"></i>'
+      + '<div class="ti-main"><div class="ti-t">'+esc(i.titulo||"(sin título)")+'</div>'
+      + '<div class="ti-f">'+meta+'</div>'
+      + (!i.archivo_path && i.texto ? '<div class="ti-f" style="color:var(--muted);margin-top:4px;white-space:pre-line">'+esc(i.texto.slice(0,200))+(i.texto.length>200?"…":"")+'</div>' : '')
+      + '</div>'
+      + (i.archivo_path ? '<button type="button" class="adj-dl" data-dl="'+i.id+'">Ver/Descargar</button>' : '')
+      + '<button type="button" class="adj-del" data-del="'+i.id+'" title="Borrar">✕</button>'
+      + '</div>';
+  }).join("");
+  c.querySelectorAll("[data-dl]").forEach(b=>b.addEventListener("click",()=>descargarInfPac(b.dataset.dl)));
+  c.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarInfPac(b.dataset.del)));
+}
+function abrirInfPacNuevo(){
+  $("ip_titulo").value=""; $("ip_fecha").value=hoyISO(); $("ip_texto").value=""; $("ip_file").value="";
+  $("infPacMsg").className="msg err"; $("infPacMsg").textContent="";
+  $("infPacModalBg").classList.remove("hidden");
+  marcarSnap($("infPacModalBg"));
+}
+async function guardarInfPac(){
+  const msg=$("infPacMsg"); msg.className="msg err"; msg.textContent="";
+  const titulo=$("ip_titulo").value.trim(), fecha=$("ip_fecha").value, texto=$("ip_texto").value.trim();
+  if(!titulo){ msg.textContent="Poné un título."; return; }
+  if(!fecha){ msg.textContent="Poné la fecha."; return; }
+  const file=$("ip_file").files[0];
+  const btn=$("btnSaveInfPac"); btn.disabled=true; btn.textContent="Guardando...";
+  let archivo_path=null;
+  if(file){
+    const safe=file.name.replace(/[^\w.\-]+/g,"_");
+    archivo_path=OWNER_ID+"/inf_paciente/"+pacEditId+"/"+Date.now()+"_"+safe;
+    const up=await sb.storage.from("adjuntos").upload(archivo_path,file);
+    if(up.error){ btn.disabled=false; btn.textContent="Guardar"; msg.textContent="No se pudo subir el archivo."; return; }
+  }
+  const ins=await sb.from("informes_paciente").insert({ paciente_id:pacEditId, titulo, fecha, texto:texto||null, archivo_path });
+  btn.disabled=false; btn.textContent="Guardar";
+  if(ins.error){ if(archivo_path) await sb.storage.from("adjuntos").remove([archivo_path]); msg.textContent="No se pudo guardar."; return; }
+  $("infPacModalBg").classList.add("hidden");
+  loadInformesPac(pacEditId);
+}
+async function descargarInfPac(id){
+  const i=infPac.find(x=>x.id===id); if(!i||!i.archivo_path) return;
+  const r=await sb.storage.from("adjuntos").createSignedUrl(i.archivo_path,120);
+  if(r.error||!r.data) return;
+  window.open(r.data.signedUrl,"_blank");
+}
+function borrarInfPac(id){
+  const i=infPac.find(x=>x.id===id); if(!i) return;
+  pedirConfirm('¿Borrar el informe "'+(i.titulo||"")+'"?',
+    async ()=>{
+      if(i.archivo_path) await sb.storage.from("adjuntos").remove([i.archivo_path]);
+      await sb.from("informes_paciente").delete().eq("id",id);
+      loadInformesPac(pacEditId);
+    }, "Borrar","Cancelar");
+}
+
 async function guardarPac(){
   const msg = $("pacModalMsg"); msg.className = "msg err"; msg.textContent = "";
   const nombre = $("f_nombre").value.trim();
@@ -1066,7 +1172,7 @@ async function guardarPac(){
   $("f_estado_wrap").style.display = "";
   $("btnEliminarPac").classList.remove("hidden");
   $("equipoSec").classList.remove("hidden"); $("turnosSec").classList.remove("hidden"); $("equipoAviso").classList.add("hidden");
-  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); renderFotoHead(p); }
+  if(p){ loadEquipo(p.id); loadTurnos(p.id); loadHistoria(p.id); loadInformesPac(p.id); renderFotoHead(p); }
   setEditablePac(false);
   msg.className = "msg ok"; msg.textContent = "Guardado ✓";
 }
@@ -1098,7 +1204,8 @@ async function renderFotoHead(p){
     if(url){ av.innerHTML = '<img src="'+url+'" alt="">'; av.style.background=""; $("btnFotoDel").classList.remove("hidden"); return; }
   }
   av.innerHTML = esc(inicial(p));
-  av.style.background = avatarColor(((p.nombre||"")+" "+(p.apellido||"")).trim());
+  const pcf = p.color || "#DEE3EA";
+  av.style.background = pcf; av.style.color = txDe(pcf);
   $("btnFotoDel").classList.add("hidden");
 }
 async function subirFoto(file){
@@ -1189,6 +1296,7 @@ function setEditableProf(on){
   $("btnEditarProf").classList.toggle("hidden", on || !profCatEditId);
   $("btnSaveProf").classList.toggle("hidden", !on);
   $("btnCancelProf").classList.toggle("hidden", !on || !profCatEditId);
+  $("btnDelProf").classList.toggle("hidden", !on || !profCatEditId);
 }
 function rellenarProf(p){
   $("pf_esp").value      = p ? (p.especialidad||"") : "";
@@ -1382,6 +1490,7 @@ function renderAgenda(){
     const ds = ymd(d);
     const otro = d.getMonth()!==calMonth ? " otro" : "";
     const hoy  = ds===hoyStr ? " hoy" : "";
+    const finde = isoDay(d)>=6 ? " finde" : "";
     const ses = sesionesMes.filter(s=>s.fecha===ds);
     const conSesion = ses.filter(s=>s.turno_id).map(s=>s.turno_id);
     const proy = turnosAll.filter(t=> t.dia_semana===isoDay(d)
@@ -1400,7 +1509,7 @@ function renderAgenda(){
       inner += '<div class="cal-turno '+cls+'" style="'+sty+'" '+attr+'><span class="ch">'+(it.hora||"")+'</span>'+esc(it.txt)+'</div>';
     });
     if(items.length>5) inner += '<div style="font-size:11px;color:var(--muted)">+'+(items.length-5)+' más</div>';
-    html += '<div class="cal-cell'+otro+hoy+'" data-day="'+ds+'">'+inner+'</div>';
+    html += '<div class="cal-cell'+otro+hoy+finde+'" data-day="'+ds+'">'+inner+'</div>';
   }
   $("calGrid").innerHTML = html;
   $("calGrid").querySelectorAll("[data-ses]").forEach(el=>el.addEventListener("click",e=>{ e.stopPropagation(); abrirSesionEdit(el.dataset.ses); }));
@@ -1820,6 +1929,10 @@ function initPacientes(){
   $("btnCancelNota").addEventListener("click",()=>cerrarSeguro($("notaModalBg")));
   $("btnDelNota").addEventListener("click",eliminarNota);
   $("notaModalBg").addEventListener("click",e=>{ if(e.target===$("notaModalBg")) cerrarSeguro($("notaModalBg")); });
+  $("btnNuevoInfPac").addEventListener("click",abrirInfPacNuevo);
+  $("btnSaveInfPac").addEventListener("click",guardarInfPac);
+  $("btnCancelInfPac").addEventListener("click",()=>cerrarSeguro($("infPacModalBg")));
+  $("infPacModalBg").addEventListener("click",e=>{ if(e.target===$("infPacModalBg")) cerrarSeguro($("infPacModalBg")); });
   $("btnCancelarPac").addEventListener("click",()=>{ const p=pacientes.find(x=>x.id===pacEditId); rellenarPac(p); setEditablePac(false); $("pacModalMsg").textContent=""; });
   $("btnGuardarPac").addEventListener("click",guardarPac);
   $("btnEliminarPac").addEventListener("click",eliminarPac);
