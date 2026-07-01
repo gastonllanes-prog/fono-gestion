@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v29</title>
+<title>Fono Gestión v30</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -96,7 +96,9 @@
   .btn-danger{background:transparent;color:var(--err);border:1px solid #f0d4d4;padding:9px 14px;border-radius:10px;font-size:14px}
 
   /* ---- Encabezado de página + búsqueda ---- */
-  .empty{text-align:center;color:var(--muted);padding:50px 20px}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;
+    color:var(--muted2);padding:56px 20px;font-size:14px}
+  .empty i{font-size:42px;opacity:.55}
   .page-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
   .page-head h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-right:auto}
   .search input{width:280px;padding:10px 14px;border:1px solid var(--line-strong);border-radius:10px;
@@ -106,7 +108,12 @@
   .btn-primary:hover{background:var(--accent2)}
   /* ---- Franja de stats ---- */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;
+    display:flex;align-items:center;gap:14px}
+  .stat>i{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent2);
+    display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+  .stat.alert{border-color:var(--warn)}
+  .stat.alert>i{background:var(--warn-bg);color:var(--warn)}
   .stat .k{font-size:12px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
   .stat .v{font-family:var(--ff-display);font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
   @media(max-width:880px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -183,8 +190,8 @@
   .note{font-size:12.5px;color:var(--muted2);margin-top:14px}
 
   /* ---- Modal ---- */
-  .modal-bg{position:fixed;inset:0;background:rgba(63,58,82,.45);display:flex;align-items:flex-start;
-    justify-content:center;padding:30px 16px;overflow-y:auto;z-index:50}
+  .modal-bg{position:fixed;inset:0;background:rgba(27,35,48,.42);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;z-index:50}
   .modal{background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:500px;
     box-shadow:0 20px 50px rgba(63,58,82,.25)}
   .modal h3{margin:0 0 14px;color:var(--accent2)}
@@ -326,11 +333,12 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v29</small></div>
+    <div class="brand">Fono Gestión <small>v30</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
       <button class="nav-item" data-view="agenda"><i class="ti ti-calendar"></i>Agenda</button>
       <button class="nav-item" data-view="profesionales"><i class="ti ti-stethoscope"></i>Profesionales</button>
+      <button class="nav-item" data-view="finanzas"><i class="ti ti-cash"></i>Finanzas</button>
       <button class="nav-item" data-view="config"><i class="ti ti-settings"></i>Configuración</button>
     </nav>
     <div class="side-foot">
@@ -368,6 +376,42 @@
       <div class="cal-grid" id="calGrid"></div>
       <div style="font-size:12px;color:var(--muted);margin-top:10px">
         Tocá un día para agendar, o un turno para marcar qué pasó (fue / canceló / ausente) y cargar la nota.
+      </div>
+    </section>
+
+    <!-- ===== Vista Finanzas ===== -->
+    <section class="view" id="view-finanzas">
+      <div class="page-head">
+        <h2>Finanzas</h2>
+        <button class="btn-primary" id="btnNuevoCobro"><i class="ti ti-plus"></i> Registrar cobro</button>
+      </div>
+      <div class="tabs" id="finTabs">
+        <button class="tab active" data-ft="cobros">Cobros</button>
+        <button class="tab" data-ft="caja">Caja</button>
+        <button class="tab" data-ft="comisiones">Comisiones</button>
+        <button class="tab" data-ft="os">Obras sociales</button>
+      </div>
+
+      <!-- Tab Cobros -->
+      <div class="panel show" data-ftp="cobros">
+        <div class="stats" id="cobStats"></div>
+        <div class="fieldset">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:10px">Cobros registrados
+            <select id="cobMes" style="width:auto;margin-left:auto;font-size:13px;padding:7px 10px"></select>
+          </div>
+          <div id="cobList"></div>
+        </div>
+      </div>
+
+      <!-- Tabs F2/F3/F4 (placeholder) -->
+      <div class="panel" data-ftp="caja">
+        <div class="empty"><i class="ti ti-report-money"></i>La caja (resumen diario/semanal/mensual) llega en la fase 4.</div>
+      </div>
+      <div class="panel" data-ftp="comisiones">
+        <div class="empty"><i class="ti ti-building-bank"></i>Comisiones y cuenta corriente con el centro llegan en la fase 2.</div>
+      </div>
+      <div class="panel" data-ftp="os">
+        <div class="empty"><i class="ti ti-clock-dollar"></i>Facturación a obras sociales y aging llegan en la fase 3.</div>
       </div>
     </section>
 
@@ -768,6 +812,39 @@
   </div>
 </div>
 
+<!-- ===== Modal Cobro ===== -->
+<div class="modal-bg hidden" id="cobModalBg" style="z-index:70">
+  <div class="modal" style="max-width:520px">
+    <h3>Registrar cobro</h3>
+    <label>Paciente</label>
+    <select id="cb_pac"></select>
+    <label>¿A qué sesión corresponde?</label>
+    <select id="cb_sesion"></select>
+    <div class="row2">
+      <div><label>Monto</label><input id="cb_monto" inputmode="numeric" placeholder="35000"></div>
+      <div><label>Fecha del cobro</label><input id="cb_fecha" type="date"></div>
+    </div>
+    <label>Medio de pago</label>
+    <select id="cb_medio">
+      <option value="efectivo">Efectivo</option>
+      <option value="transferencia">Transferencia</option>
+    </select>
+    <div id="cb_fact_wrap" class="hidden" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer">
+        <input type="checkbox" id="cb_facturado" style="width:auto"> Factura emitida
+      </label>
+      <div id="cb_fact_aviso" class="aviso hidden" style="margin-top:8px">⚠ Transferencia sin factura: acordate de emitirla (tema impositivo).</div>
+    </div>
+    <label>Nota (opcional)</label>
+    <input id="cb_nota" placeholder="Ej: pagó la mamá por Mercado Pago">
+    <div class="msg err" id="cobMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCancelCobro">Cancelar</button>
+      <button class="btn-primary" id="btnSaveCobro">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Cartel de confirmación (cambios sin guardar, etc.) ===== -->
 <div class="modal-bg hidden" id="confirmBg" style="z-index:80">
   <div class="modal" style="max-width:380px">
@@ -811,6 +888,7 @@ function mostrarApp(session){
   $("userEmail").textContent = session.user.email;
   // owner_id de Nancy = session.user.id  (lo usaremos en todas las tablas con RLS)
   OWNER_ID = session.user.id;  // se usa como carpeta privada en Storage
+  cargarValorGlobal();         // valor de sesión vigente (se congela en cada sesión nueva)
   if (!window._pacInit){ initPacientes(); window._pacInit = true; }
   loadPacientes();
 }
@@ -883,8 +961,8 @@ function renderStats(){
   const inact = pacientes.filter(p=>p.estado==="inactivo").length;
   const conOS = pacientes.filter(p=>p.cobertura_tipo==="obra_social").length;
   const nTurnos = Object.values(turnoPorPac).reduce((a,arr)=>a+arr.length,0);
-  const stat=(k,v)=>'<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
-  $("pacStats").innerHTML = stat("Pacientes activos",act)+stat("Inactivos",inact)+stat("Con obra social",conOS)+stat("Turnos fijos",nTurnos);
+  const stat=(ic,k,v)=>'<div class="stat"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  $("pacStats").innerHTML = stat("ti-users","Pacientes activos",act)+stat("ti-user-off","Inactivos",inact)+stat("ti-shield-check","Con obra social",conOS)+stat("ti-calendar-time","Turnos fijos",nTurnos);
 }
 
 function renderPacientes(){
@@ -1361,6 +1439,149 @@ function switchView(v){
   if(v==="profesionales") loadProfCatalogo();
   if(v==="agenda") loadAgenda();
   if(v==="config") loadConfig();
+  if(v==="finanzas") loadFinanzas();
+}
+
+// ================== FINANZAS · F1 Cobros ==================
+let VALOR_SESION = null, cobros = [], cobSesionesPac = [];
+function fmt$(n){ return "$" + Number(n||0).toLocaleString("es-AR"); }
+
+async function cargarValorGlobal(){
+  const r = await sb.from("config").select("valor_sesion").maybeSingle();
+  VALOR_SESION = (r.data && r.data.valor_sesion!=null) ? Number(r.data.valor_sesion) : null;
+}
+
+function setTabFin(t){
+  document.querySelectorAll("#finTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.ft===t));
+  document.querySelectorAll("#view-finanzas .panel").forEach(p=>p.classList.toggle("show",p.dataset.ftp===t));
+}
+
+async function loadFinanzas(){
+  if(VALOR_SESION===null) await cargarValorGlobal();
+  const [rc, rp] = await Promise.all([
+    sb.from("cobros").select("*").order("fecha",{ascending:false}).order("created_at",{ascending:false}),
+    sb.from("pacientes").select("id,nombre,apellido,color")
+  ]);
+  cobros = rc.data || [];
+  if(rp.data) pacientes = rp.data;
+  fillMesesCobros();
+  renderCobros();
+}
+function mesDe(f){ return (f||"").slice(0,7); }
+function fillMesesCobros(){
+  const sel = $("cobMes"), prev = sel.value;
+  const meses = [...new Set(cobros.map(c=>mesDe(c.fecha)))];
+  const hoyMes = hoyISO().slice(0,7);
+  if(!meses.includes(hoyMes)) meses.unshift(hoyMes);
+  meses.sort().reverse();
+  const M = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  sel.innerHTML = '<option value="">Todos</option>' + meses.map(m=>{
+    const p = m.split("-");
+    return '<option value="'+m+'">'+M[parseInt(p[1],10)]+" "+p[0]+'</option>';
+  }).join("");
+  sel.value = meses.includes(prev) || prev==="" && prev!==null ? prev : hoyMes;
+  if(!sel.value && sel.value!=="") sel.value = hoyMes;
+}
+function renderCobros(){
+  const mes = $("cobMes").value;
+  const list = mes ? cobros.filter(c=>mesDe(c.fecha)===mes) : cobros;
+  const tot = list.reduce((a,c)=>a+Number(c.monto||0),0);
+  const efe = list.filter(c=>c.medio==="efectivo").reduce((a,c)=>a+Number(c.monto||0),0);
+  const tra = list.filter(c=>c.medio==="transferencia").reduce((a,c)=>a+Number(c.monto||0),0);
+  const sinFact = list.filter(c=>c.medio==="transferencia" && !c.facturado).length;
+  const stat=(ic,k,v,warn)=>'<div class="stat'+(warn?" alert":"")+'"><i class="ti '+ic+'"></i><div><div class="k">'+k+'</div><div class="v">'+v+'</div></div></div>';
+  $("cobStats").innerHTML =
+      stat("ti-coins","Cobrado",fmt$(tot))
+    + stat("ti-cash","Efectivo",fmt$(efe))
+    + stat("ti-building-bank","Transferencia",fmt$(tra))
+    + stat("ti-receipt-off","Transf. sin factura",sinFact, sinFact>0);
+  const c = $("cobList");
+  if(!list.length){ c.innerHTML='<div style="font-size:13px;color:var(--muted2);padding:8px 0">Sin cobros en este período.</div>'; return; }
+  c.innerHTML = list.map(cb=>{
+    const pc = pacColor(cb.paciente_id);
+    const fact = cb.medio==="transferencia"
+      ? (cb.facturado?'<span class="chip" style="background:var(--ok-bg);color:var(--ok)">facturado</span>'
+                     :'<span class="chip" style="background:var(--warn-bg);color:var(--warn)">sin factura</span>') : '';
+    return '<div class="infp-item" style="border-left:4px solid '+pc+';border-radius:0 10px 10px 0">'
+      + '<div class="ti-main"><div class="ti-t">'+esc(pacNom(cb.paciente_id))+' · '+fmt$(cb.monto)+'</div>'
+      + '<div class="ti-f">'+fmtFecha(cb.fecha)+' · '+cb.medio+(cb.sesion_id?' · por sesión':' · pago suelto')+(cb.nota?' · '+esc(cb.nota):'')+'</div></div>'
+      + fact
+      + '<button type="button" class="adj-del" data-del="'+cb.id+'" title="Borrar">✕</button>'
+      + '</div>';
+  }).join("");
+  c.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>borrarCobro(b.dataset.del)));
+}
+
+async function abrirCobro(){
+  const act = pacientes.filter(p=>p.estado!=="inactivo");
+  $("cb_pac").innerHTML = act.map(p=>'<option value="'+p.id+'">'+esc((((p.apellido||"")+" "+(p.nombre||"")).trim())||p.nombre||"")+'</option>').join("");
+  $("cb_fecha").value = hoyISO();
+  $("cb_monto").value = ""; $("cb_nota").value = "";
+  $("cb_medio").value = "efectivo"; $("cb_facturado").checked = false;
+  toggleFact();
+  $("cobMsg").textContent = "";
+  await cargarSesionesImpagas();
+  $("cobModalBg").classList.remove("hidden");
+  marcarSnap($("cobModalBg"));
+}
+async function cargarSesionesImpagas(){
+  const pac = $("cb_pac").value;
+  const sel = $("cb_sesion");
+  sel.innerHTML = '<option value="">Pago suelto (sin sesión)</option>';
+  if(!pac) return;
+  const [rs, rc, rr] = await Promise.all([
+    sb.from("sesiones").select("id,fecha,estado,valor").eq("paciente_id",pac).neq("estado","agendada").order("fecha",{ascending:false}).limit(40),
+    sb.from("cobros").select("sesion_id").eq("paciente_id",pac).not("sesion_id","is",null),
+    sb.from("reglas_cancelacion").select("pct_paciente,vigencia_desde").order("vigencia_desde",{ascending:false})
+  ]);
+  const pagadas = new Set((rc.data||[]).map(x=>x.sesion_id));
+  cobSesionesPac = (rs.data||[]).filter(s=>!pagadas.has(s.id));
+  const reglas = rr.data||[];
+  const L={realizada:"realizada",cancelada_con_aviso:"canceló con aviso",cancelada_mismo_dia:"canceló mismo día",ausente:"ausente"};
+  cobSesionesPac.forEach(s=>{
+    let pct = 100;
+    if(s.estado==="cancelada_con_aviso"){
+      const reg = reglas.find(r=>r.vigencia_desde<=s.fecha);
+      pct = reg ? Number(reg.pct_paciente) : 50;
+    }
+    s._sugerido = s.valor!=null ? Math.round(Number(s.valor)*pct/100) : (VALOR_SESION!=null ? Math.round(VALOR_SESION*pct/100) : null);
+    const sug = s._sugerido!=null ? " — sugerido "+fmt$(s._sugerido) : "";
+    sel.innerHTML += '<option value="'+s.id+'">'+fmtFecha(s.fecha)+' · '+(L[s.estado]||s.estado)+sug+'</option>';
+  });
+}
+function sugerirMonto(){
+  const s = cobSesionesPac.find(x=>x.id===$("cb_sesion").value);
+  if(s && s._sugerido!=null) $("cb_monto").value = s._sugerido;
+}
+function toggleFact(){
+  const tr = $("cb_medio").value==="transferencia";
+  $("cb_fact_wrap").classList.toggle("hidden", !tr);
+  $("cb_fact_aviso").classList.toggle("hidden", !tr || $("cb_facturado").checked);
+}
+async function guardarCobro(){
+  const msg = $("cobMsg"); msg.textContent = "";
+  const pac = $("cb_pac").value;
+  const monto = parseInt(($("cb_monto").value||"").replace(/[^0-9]/g,""),10);
+  if(!pac){ msg.textContent = "Elegí un paciente."; return; }
+  if(isNaN(monto) || monto<=0){ msg.textContent = "Poné el monto."; return; }
+  if(!$("cb_fecha").value){ msg.textContent = "Poné la fecha."; return; }
+  const btn = $("btnSaveCobro"); btn.disabled = true; btn.textContent = "Guardando...";
+  const res = await sb.from("cobros").insert({
+    paciente_id: pac, sesion_id: $("cb_sesion").value || null,
+    monto, medio: $("cb_medio").value,
+    facturado: $("cb_medio").value==="transferencia" ? $("cb_facturado").checked : false,
+    fecha: $("cb_fecha").value, nota: $("cb_nota").value.trim() || null
+  });
+  btn.disabled = false; btn.textContent = "Guardar";
+  if(res.error){ msg.textContent = "No se pudo guardar."; return; }
+  $("cobModalBg").classList.add("hidden");
+  loadFinanzas();
+}
+function borrarCobro(id){
+  const cb = cobros.find(x=>x.id===id); if(!cb) return;
+  pedirConfirm("¿Borrar este cobro de "+fmt$(cb.monto)+" ("+pacNom(cb.paciente_id)+")?",
+    async ()=>{ await sb.from("cobros").delete().eq("id",id); loadFinanzas(); },
+    "Borrar","Cancelar");
 }
 
 // ================== CONFIGURACIÓN ==================
@@ -1382,6 +1603,7 @@ async function guardarValor(){
   const res = await sb.from("config").upsert({ owner_id: OWNER_ID, valor_sesion: isNaN(v)?null:v });
   const m = $("cfgValorMsg");
   if(res.error){ m.className="msg err"; m.textContent="No se pudo guardar."; return; }
+  VALOR_SESION = isNaN(v) ? null : v;   // las sesiones nuevas congelan este valor
   m.className="msg ok"; m.textContent="Guardado ✓";
 }
 
@@ -1589,6 +1811,7 @@ async function guardarSesion(){
   } else {
     const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:mas45($("se_ini").value),
       estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
+    if(!sesEditId) payload.valor = VALOR_SESION;   // congela el valor vigente al crear (no se recalcula)
     res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload).select().single();
   }
   btn.disabled=false; btn.textContent="Guardar";
@@ -1960,6 +2183,16 @@ function initPacientes(){
   $("btnCancelCancel").addEventListener("click",()=>cerrarSeguro($("cancelModalBg")));
   $("btnDelCancel").addEventListener("click",eliminarCancel);
   $("cancelModalBg").addEventListener("click",e=>{ if(e.target===$("cancelModalBg")) cerrarSeguro($("cancelModalBg")); });
+  document.querySelectorAll("#finTabs .tab").forEach(b=>b.addEventListener("click",()=>setTabFin(b.dataset.ft)));
+  $("btnNuevoCobro").addEventListener("click",abrirCobro);
+  $("cobMes").addEventListener("change",renderCobros);
+  $("cb_pac").addEventListener("change",cargarSesionesImpagas);
+  $("cb_sesion").addEventListener("change",sugerirMonto);
+  $("cb_medio").addEventListener("change",toggleFact);
+  $("cb_facturado").addEventListener("change",toggleFact);
+  $("btnSaveCobro").addEventListener("click",guardarCobro);
+  $("btnCancelCobro").addEventListener("click",()=>cerrarSeguro($("cobModalBg")));
+  $("cobModalBg").addEventListener("click",e=>{ if(e.target===$("cobModalBg")) cerrarSeguro($("cobModalBg")); });
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
