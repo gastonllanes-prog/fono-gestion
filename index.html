@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v36</title>
+<title>Fono Gestión v37</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -344,7 +344,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v36</small></div>
+    <div class="brand">Fono Gestión <small>v37</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="inicio"><i class="ti ti-layout-dashboard"></i>Inicio</button>
       <button class="nav-item" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
@@ -677,11 +677,11 @@
       <div class="panel" data-ptp="factu">
         <div class="fcards">
           <div class="fcard"><div class="k">Sesiones reales (mes)</div><div class="v" id="fc-reales">—</div></div>
-          <div class="fcard"><div class="k">Facturadas a OS (mes)</div><div class="v">—</div></div>
-          <div class="fcard alert"><div class="k">Brecha real vs facturado</div><div class="v">—</div></div>
-          <div class="fcard"><div class="k">Comisión generada</div><div class="v">—</div></div>
+          <div class="fcard"><div class="k">Facturadas a OS (mes)</div><div class="v" id="fc-fact">—</div></div>
+          <div class="fcard alert"><div class="k">Brecha real vs facturado</div><div class="v" id="fc-brecha">—</div></div>
+          <div class="fcard"><div class="k">Monto sesiones reales (mes)</div><div class="v" id="fc-monto">—</div></div>
         </div>
-        <p class="note">La comisión se calcula sobre las sesiones reales, no sobre las facturadas. Estos números se conectan en S3 (comisión).</p>
+        <p class="note">La comisión se calcula por semana sobre el total de sesiones (todos los pacientes) según los tramos configurados, por eso no se atribuye a un paciente individual. El detalle está en <b>Finanzas → Comisiones</b>.</p>
       </div>
     </section>
 
@@ -1236,6 +1236,24 @@ function headerPac(p){
 function setTabPac(t){
   document.querySelectorAll("#pacTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.pt===t));
   document.querySelectorAll("#view-pac-detalle .panel").forEach(p=>p.classList.toggle("show",p.dataset.ptp===t));
+  if(t==="factu" && pacEditId) loadFacturacionPac(pacEditId);
+}
+async function loadFacturacionPac(pacId){
+  const mes = hoyISO().slice(0,7);   // YYYY-MM del mes en curso
+  $("fc-reales").textContent="…"; $("fc-fact").textContent="…"; $("fc-brecha").textContent="…"; $("fc-monto").textContent="…";
+  const [rs, rf] = await Promise.all([
+    sb.from("sesiones").select("valor,fecha,estado").eq("paciente_id",pacId).eq("estado","realizada").gte("fecha",mes+"-01").lte("fecha",mes+"-31"),
+    sb.from("facturacion_os").select("sesiones_facturadas,monto").eq("paciente_id",pacId).eq("periodo",mes)
+  ]);
+  const ses = rs.data||[];
+  const reales = ses.length;
+  const monto  = ses.reduce((a,s)=>a+Number(s.valor||0),0);
+  const fact   = (rf.data||[]).reduce((a,f)=>a+Number(f.sesiones_facturadas||0),0);
+  const brecha = reales - fact;
+  $("fc-reales").textContent = reales;
+  $("fc-fact").textContent   = fact;
+  $("fc-brecha").textContent = (brecha>0?"+":"")+brecha;
+  $("fc-monto").textContent  = fmt$(monto);
 }
 function setEditablePac(on){
   $("pacForm").classList.toggle("lectura", !on);
@@ -1245,9 +1263,13 @@ function setEditablePac(on){
   $("btnEliminarPac").classList.toggle("hidden", !on || !pacEditId);
 }
 
-function abrirModalPac(id){
+async function abrirModalPac(id){
   pacEditId = id || null;
-  const p = id ? pacientes.find(x=>x.id===id) : null;
+  let p = id ? pacientes.find(x=>x.id===id) : null;
+  if(id){   // traer fila completa: otras vistas (inicio/finanzas/agenda) dejan `pacientes` con columnas parciales
+    const r = await sb.from("pacientes").select("*").eq("id",id).single();
+    if(r.data){ p = r.data; const i = pacientes.findIndex(x=>x.id===id); if(i>=0) pacientes[i]=r.data; }
+  }
   rellenarPac(p);
   headerPac(p);
   $("f_estado_wrap").style.display = p ? "" : "none";
@@ -2530,7 +2552,7 @@ async function guardarSesion(){
   } else {
     const payload={ paciente_id:pac, fecha, hora_inicio:$("se_ini").value||null, hora_fin:mas45($("se_ini").value),
       estado:$("se_estado").value, nota:$("se_nota").value.trim()||null, turno_id:sesTurnoId||null };
-    if(!sesEditId) payload.valor = VALOR_SESION;   // congela el valor vigente al crear (no se recalcula)
+    if(!sesEditId){ if(VALOR_SESION===null) await cargarValorGlobal(); payload.valor = VALOR_SESION; }   // congela el valor vigente al crear (no se recalcula); evita congelar null por carrera
     res = sesEditId ? await sb.from("sesiones").update(payload).eq("id",sesEditId) : await sb.from("sesiones").insert(payload).select().single();
   }
   btn.disabled=false; btn.textContent="Guardar";
