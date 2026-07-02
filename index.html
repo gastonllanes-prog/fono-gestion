@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fono Gestión v35</title>
+<title>Fono Gestión v36</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -344,7 +344,7 @@
 <!-- ===================== APP ===================== -->
 <section id="app" class="hidden">
   <aside class="sidebar">
-    <div class="brand">Fono Gestión <small>v35</small></div>
+    <div class="brand">Fono Gestión <small>v36</small></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="inicio"><i class="ti ti-layout-dashboard"></i>Inicio</button>
       <button class="nav-item" data-view="pacientes"><i class="ti ti-users"></i>Pacientes</button>
@@ -951,6 +951,18 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="btnCancelMedia">Cancelar</button>
       <button class="btn-primary" id="btnSaveMedia">Subir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Día (agenda) ===== -->
+<div class="modal-bg hidden" id="diaModalBg" style="z-index:65">
+  <div class="modal" style="max-width:500px">
+    <h3 id="diaTitle">Turnos del día</h3>
+    <div id="diaList"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnCerrarDia">Cerrar</button>
+      <button class="btn-primary" id="btnAgendarDia"><i class="ti ti-plus"></i> Agendar en este día</button>
     </div>
   </div>
 </div>
@@ -2405,9 +2417,7 @@ function renderAgenda(){
     html += '<div class="cal-cell'+otro+hoy+finde+'" data-day="'+ds+'">'+inner+'</div>';
   }
   $("calGrid").innerHTML = html;
-  $("calGrid").querySelectorAll("[data-ses]").forEach(el=>el.addEventListener("click",e=>{ e.stopPropagation(); abrirSesionEdit(el.dataset.ses); }));
-  $("calGrid").querySelectorAll("[data-proy]").forEach(el=>el.addEventListener("click",e=>{ e.stopPropagation(); abrirSesionProy(el.dataset.proy, el.dataset.fecha); }));
-  $("calGrid").querySelectorAll(".cal-cell").forEach(el=>el.addEventListener("click",()=>abrirSesionNueva(el.dataset.day)));
+  $("calGrid").querySelectorAll(".cal-cell").forEach(el=>el.addEventListener("click",()=>abrirDia(el.dataset.day)));
 }
 
 function fillPacSelect(sel){
@@ -2418,6 +2428,44 @@ function fillPacSelect(sel){
 function baseSes(){ $("sesMsg").textContent=""; $("sesModalBg").classList.remove("hidden"); marcarSnap($("sesModalBg")); }
 
 function diaDe(fechaStr){ if(!fechaStr) return null; const p=fechaStr.split("-"); return isoDay(new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))); }
+
+// ---- Modal de día: ver turnos, marcar estado o agregar ----
+let diaActual = null;
+function itemsDia(ds){
+  const ses = sesionesMes.filter(s=>s.fecha===ds);
+  const conS = ses.filter(s=>s.turno_id).map(s=>s.turno_id);
+  const dw = diaDe(ds);
+  const proy = turnosAll.filter(t=> t.dia_semana===dw && (!t.vigencia_desde || t.vigencia_desde<=ds) && !conS.includes(t.id));
+  const items = [];
+  ses.forEach(s=> items.push({ tipo:"ses", id:s.id, hora:hhmm(s.hora_inicio), pac:s.paciente_id, estado:s.estado }));
+  proy.forEach(t=> items.push({ tipo:"proy", id:t.id, hora:hhmm(t.hora_inicio), pac:t.paciente_id }));
+  items.sort((a,b)=>(a.hora||"").localeCompare(b.hora||""));
+  return items;
+}
+function abrirDia(ds){
+  diaActual = ds;
+  const dw = diaDe(ds);
+  $("diaTitle").textContent = (DIAS[dw]||"") + " " + fmtFecha(ds);
+  const items = itemsDia(ds);
+  const c = $("diaList");
+  if(!items.length){
+    c.innerHTML = '<div style="font-size:14px;color:var(--muted2);padding:8px 0 4px">No hay turnos este día. Tocá "Agendar en este día".</div>';
+  } else {
+    c.innerHTML = items.map(it=>{
+      const pc = pacColor(it.pac), tx = txDe(pc);
+      const est = it.tipo==="ses"
+        ? '<span class="chip" style="background:var(--surface2);color:var(--muted)">'+(ESTADO_L[it.estado]||it.estado)+'</span>'
+        : '<span class="chip" style="background:var(--accent-soft);color:var(--accent2)">a confirmar</span>';
+      const attr = it.tipo==="ses" ? ('data-ses="'+it.id+'"') : ('data-proy="'+it.id+'"');
+      return '<div class="infp-item" '+attr+' style="cursor:pointer;border-left:4px solid '+tx+';background:'+pc+'33">'
+        + '<div class="ti-main"><div class="ti-t">'+(it.hora?it.hora+" · ":"")+esc(pacNom(it.pac))+'</div></div>'
+        + est + '<i class="ti ti-chevron-right" style="color:var(--muted2)"></i></div>';
+    }).join("");
+    c.querySelectorAll("[data-ses]").forEach(el=>el.addEventListener("click",()=>{ $("diaModalBg").classList.add("hidden"); abrirSesionEdit(el.dataset.ses); }));
+    c.querySelectorAll("[data-proy]").forEach(el=>el.addEventListener("click",()=>{ $("diaModalBg").classList.add("hidden"); abrirSesionProy(el.dataset.proy, ds); }));
+  }
+  $("diaModalBg").classList.remove("hidden");
+}
 function camposSes(perm){   // muestra/oculta segun tipo
   $("se_estado_wrap").classList.toggle("hidden", perm);
   $("se_nota_wrap").classList.toggle("hidden", perm);
@@ -2885,6 +2933,9 @@ function initPacientes(){
   $("fcobModalBg").addEventListener("click",e=>{ if(e.target===$("fcobModalBg")) cerrarSeguro($("fcobModalBg")); });
   document.querySelectorAll("#cajaPerBtns button").forEach(b=>b.addEventListener("click",()=>{ cajaPer = b.dataset.per; loadCaja(); }));
   $("iniVerAgenda").addEventListener("click",()=>switchView("agenda"));
+  $("btnCerrarDia").addEventListener("click",()=>$("diaModalBg").classList.add("hidden"));
+  $("btnAgendarDia").addEventListener("click",()=>{ $("diaModalBg").classList.add("hidden"); abrirSesionNueva(diaActual); });
+  $("diaModalBg").addEventListener("click",e=>{ if(e.target===$("diaModalBg")) $("diaModalBg").classList.add("hidden"); });
   $("calPrev").addEventListener("click",()=>calMes(-1));
   $("calNext").addEventListener("click",()=>calMes(1));
   $("calHoy").addEventListener("click",irHoy);
